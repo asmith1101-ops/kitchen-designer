@@ -1,0 +1,705 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="data:,">
+<title>Kitchen Designer — Shared</title>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  color-scheme:light dark;
+  --bg:#f4f1ea; --surface:#fffdf7; --surface-alt:#ece7da; --text:#1e2a36; --dim:#68778a; --border:#ddd3bf;
+  --accent:#16324f; --accent-text:#fff; --oak:#b97c2e; --rust:#c0452f; --good:#2e7d4f;
+  --bp-bg:#14304d; --bp-bg-edge:#0f2740; --bp-grid-minor:rgba(190,216,240,.10); --bp-grid-major:rgba(190,216,240,.22); --bp-line:#dcebf7; --bp-dim:#9fc0da; --bp-item-edge:#16324f;
+  --font-display:"Archivo",system-ui,sans-serif;
+}
+@media (prefers-color-scheme:dark){
+  :root{ --bg:#0d141c; --surface:#16202b; --surface-alt:#1d2a38; --text:#ece7db; --dim:#93a1b1; --border:#2a3947; --accent:#8fc1e9; --accent-text:#0d1b29; --oak:#d29a4a; --rust:#e0705c; --good:#5cb887; }
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:Inter,system-ui,sans-serif;background:var(--bg);color:var(--text)}
+.font-display{font-family:var(--font-display)}
+.mono{font-family:ui-monospace,SF Mono,Menlo,monospace;font-variant-numeric:tabular-nums}
+button{cursor:pointer}
+input,select,textarea{font:inherit;color:var(--text)}
+a{color:var(--oak)}
+/* layout */
+#app{display:flex;flex-direction:column;height:100dvh;overflow:hidden}
+header{display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0}
+header .logo{font-size:20px;color:var(--oak)}
+#designName{font-family:var(--font-display);font-weight:800;font-size:18px;background:transparent;border:none;outline:none;flex:1;min-width:0}
+#designName:focus{border-bottom:2px solid var(--oak)}
+.pill{font-family:ui-monospace,monospace;font-size:12px;font-weight:600;background:var(--surface-alt);padding:6px 10px;border-radius:999px;white-space:nowrap}
+.share-strip{display:flex;align-items:center;gap:10px;padding:7px 16px;background:#16324f;color:#dcebf7;font-size:13px;flex-shrink:0}
+.share-strip b{color:#fff}
+.share-strip button{margin-left:auto;background:#fff;color:#16324f;border:none;padding:6px 12px;border-radius:6px;font-weight:700;font-size:13px;white-space:nowrap}
+#main{display:flex;flex:1;min-height:0;flex-direction:column}
+@media(min-width:768px){#main{flex-direction:row}}
+#canvasSection{position:relative;height:44dvh;flex-shrink:0;background:var(--bp-bg-edge);overflow:hidden}
+@media(min-width:768px){#canvasSection{order:2;flex:1;height:auto}}
+aside{display:flex;flex-direction:column;flex:1;min-height:0;background:var(--surface);border-top:1px solid var(--border)}
+@media(min-width:768px){aside{order:1;width:400px;flex:none;border-top:none;border-right:1px solid var(--border)}}
+nav.tabs{display:flex;gap:4px;padding:8px;border-bottom:1px solid var(--border);overflow-x:auto;flex-shrink:0}
+nav.tabs button{position:relative;font-family:var(--font-display);font-weight:700;font-size:14px;padding:8px 14px;border-radius:7px;border:none;background:transparent;color:var(--dim);white-space:nowrap}
+nav.tabs button.active{background:var(--accent);color:var(--accent-text)}
+.badge{position:absolute;top:-4px;right:-4px;background:var(--rust);color:#fff;font-size:11px;font-weight:800;min-width:20px;height:20px;border-radius:999px;display:flex;align-items:center;justify-content:center;padding:0 4px}
+#panel{flex:1;overflow-y:auto;padding:16px;padding-bottom:32px}
+label.field{display:flex;flex-direction:column;gap:4px}
+label.field span, .label{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--dim)}
+.field input,.field select,.field textarea,.search-input{width:100%;border:1px solid var(--border);background:var(--bg);border-radius:7px;padding:9px 10px;font-size:16px}
+.btn{font-family:var(--font-display);font-weight:700;border-radius:7px;padding:9px 14px;border:1px solid var(--border);background:var(--bg)}
+.btn-primary{background:var(--accent);color:var(--accent-text);border-color:var(--accent)}
+.btn-oak{background:var(--oak);color:#fff;border-color:var(--oak)}
+.btn-rust{background:var(--rust);color:#fff;border-color:var(--rust)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.cat-item{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)}
+.swatch{width:36px;height:36px;border-radius:6px;border:1px solid rgba(0,0,0,.25);flex-shrink:0}
+.finish-dot{width:32px;height:32px;border-radius:999px;border:1px solid rgba(0,0,0,.25);padding:0}
+.finish-dot.sel{outline:2px solid var(--oak);outline-offset:2px}
+#svgWrap{position:absolute;inset:0}
+#planSvg{width:100%;height:100%;display:block;touch-action:none}
+.zoomctl{position:absolute;right:12px;bottom:12px;display:flex;gap:6px;align-items:center}
+.zoomctl button{height:40px;min-width:40px;border-radius:7px;border:none;background:rgba(0,0,0,.38);color:#dcebf7;font-size:16px;font-weight:700;backdrop-filter:blur(4px);padding:0 10px}
+.hint{position:absolute;left:12px;top:12px;background:rgba(0,0,0,.32);color:#b8d2e8;font-size:12px;padding:6px 10px;border-radius:6px;pointer-events:none;max-width:70%}
+.check-card{border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:14px;text-align:left;width:100%;background:var(--surface)}
+#saveStatus{font-family:ui-monospace,monospace;font-size:12px;font-weight:600;background:var(--surface-alt);padding:6px 10px;border-radius:999px;white-space:nowrap;color:var(--dim)}
+@media(max-width:640px){ .pill{display:none} .share-strip{font-size:12px} #designName{font-size:15px} header{padding:8px 10px;gap:8px} nav.tabs button{padding:7px 9px;font-size:13px} .hint{display:none} }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <span class="logo font-display" aria-hidden="true">⌂</span>
+    <input id="designName" value="Our kitchen — sketch" aria-label="Design name">
+    <span id="budgetPill" class="pill">$0 · 0 pcs</span>
+    <span id="saveStatus">Sign in to save</span>
+    <button id="topDownload" class="btn btn-primary" style="padding:7px 12px;font-size:13px">Download copy</button>
+  </header>
+  <div class="share-strip">
+    <span>👋 <b>Hi Christine!</b> Sketch freely — sign in under the <b>Account</b> tab and your designs save to the library you and Smitty share.</span>
+    <button id="stripShareBtn">How to keep it ↓</button>
+  </div>
+
+  <div id="main">
+    <section id="canvasSection" aria-label="Floor plan">
+      <div id="svgWrap">
+        <svg id="planSvg" role="application" aria-label="Kitchen floor plan editor"></svg>
+        <div class="hint">Drag pieces to move · pinch or scroll to zoom · drag right / bottom wall to resize room</div>
+        <div class="zoomctl">
+          <span id="scaleLabel" class="mono" style="background:rgba(0,0,0,.35);color:#dcebf7;font-size:12px;padding:8px;border-radius:6px">2.0 px/in</span>
+          <button id="zoomOut" aria-label="Zoom out">−</button>
+          <button id="zoomIn" aria-label="Zoom in">+</button>
+          <button id="zoomFit">Fit</button>
+        </div>
+      </div>
+    </section>
+
+    <aside>
+      <nav class="tabs" aria-label="Designer panels" id="tabsNav"></nav>
+      <div id="panel"></div>
+    </aside>
+  </div>
+</div>
+<input type="file" id="importFile" accept=".json,application/json" style="display:none">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script>
+// ---------- Data (ported from original Kitchen Designer) ----------
+const CATALOG=[
+{id:"base-24",name:"Base cabinet 24″",category:"Cabinets",layer:"floor",role:null,wIn:24,dIn:24,hIn:34.5,color:"#c99a5b",blurb:"Standard base, 24″ deep"},
+{id:"base-36",name:"Base cabinet 36″",category:"Cabinets",layer:"floor",role:null,wIn:36,dIn:24,hIn:34.5,color:"#c99a5b",blurb:"Wide base cabinet"},
+{id:"drawer-18",name:"Drawer base 18″",category:"Cabinets",layer:"floor",role:null,wIn:18,dIn:24,hIn:34.5,color:"#c99a5b",blurb:"Three-drawer base"},
+{id:"sink-33",name:"Sink base 33″",category:"Cabinets",layer:"floor",role:"sink",wIn:33,dIn:24,hIn:34.5,color:"#8a9a7b",blurb:"Sink cabinet — work triangle"},
+{id:"corner-36",name:"Corner base 36″",category:"Cabinets",layer:"floor",role:null,wIn:36,dIn:36,hIn:34.5,color:"#c99a5b",blurb:"Lazy-susan corner"},
+{id:"trash-18",name:"Trash pull-out 18″",category:"Cabinets",layer:"floor",role:null,wIn:18,dIn:22,hIn:34.5,color:"#c99a5b",blurb:"Pull-out waste cabinet"},
+{id:"pantry-24",name:"Tall pantry 24″",category:"Cabinets",layer:"floor",role:null,wIn:24,dIn:24,hIn:84,color:"#7a5230",blurb:"Full-height pantry"},
+{id:"wall-30",name:"Wall cabinet 30″",category:"Cabinets",layer:"upper",role:null,wIn:30,dIn:12,hIn:30,color:"#e8e4da",blurb:"Upper cabinet, 12″ deep"},
+{id:"wall-36",name:"Wall cabinet 36″",category:"Cabinets",layer:"upper",role:null,wIn:36,dIn:12,hIn:30,color:"#e8e4da",blurb:"Wide upper cabinet"},
+{id:"range-30",name:"Range 30″",category:"Appliances",layer:"floor",role:"cooking",wIn:30,dIn:27,hIn:36,color:"#b9c0c7",blurb:"Freestanding range — cooking point"},
+{id:"cooktop-30",name:"Cooktop 30″",category:"Appliances",layer:"upper",role:"cooking",wIn:30,dIn:21,hIn:3,color:"#3a3f45",blurb:"Sits on a base cabinet"},
+{id:"oven-30",name:"Wall oven 30″",category:"Appliances",layer:"floor",role:"cooking",wIn:30,dIn:24,hIn:54,color:"#b9c0c7",blurb:"Built-in oven tower"},
+{id:"fridge-36",name:"Refrigerator 36″",category:"Appliances",layer:"floor",role:"fridge",wIn:36,dIn:33,hIn:70,color:"#b9c0c7",blurb:"Standard French-door fridge"},
+{id:"dishwasher-24",name:"Dishwasher 24″",category:"Appliances",layer:"floor",role:null,wIn:24,dIn:24,hIn:34,color:"#b9c0c7",blurb:"Built-in, by the sink"},
+{id:"microwave-24",name:"Microwave 24″",category:"Appliances",layer:"upper",role:null,wIn:24,dIn:17,hIn:17,color:"#3a3f45",blurb:"Over-range or shelf"},
+{id:"hood-30",name:"Range hood 30″",category:"Appliances",layer:"upper",role:null,wIn:30,dIn:20,hIn:30,color:"#b9c0c7",blurb:"Vent hood over cooktop"},
+{id:"island-60",name:"Island 60×36",category:"Islands & seating",layer:"floor",role:null,wIn:60,dIn:36,hIn:36,color:"#4a6076",blurb:"Freestanding island — keep 42″ clear"},
+{id:"peninsula-48",name:"Peninsula 48×24",category:"Islands & seating",layer:"floor",role:null,wIn:48,dIn:24,hIn:34.5,color:"#4a6076",blurb:"Counter run attached to wall"},
+{id:"table-72",name:"Table 72×36",category:"Islands & seating",layer:"floor",role:null,wIn:72,dIn:36,hIn:30,color:"#7a5230",blurb:"Eat-in kitchen table"},
+{id:"stool-16",name:"Counter stool",category:"Islands & seating",layer:"floor",role:null,wIn:16,dIn:16,hIn:24,color:"#3a3f45",blurb:"16″ square stool"},
+{id:"cart-30",name:"Rolling cart 30×18",category:"Islands & seating",layer:"floor",role:null,wIn:30,dIn:18,hIn:34,color:"#8a9a7b",blurb:"Mobile prep cart"},
+];
+const CATEGORIES=["Cabinets","Appliances","Islands & seating"];
+const FINISHES=[{name:"Natural oak",hex:"#c99a5b"},{name:"Walnut",hex:"#7a5230"},{name:"Butcher block",hex:"#d9b380"},{name:"Painted white",hex:"#e8e4da"},{name:"Slate blue",hex:"#4a6076"},{name:"Sage",hex:"#8a9a7b"},{name:"Charcoal",hex:"#3a3f45"},{name:"Stainless",hex:"#b9c0c7"},{name:"Matte black",hex:"#26262a"},{name:"Marble",hex:"#dfe3e6"}];
+const ROOM_PRESETS=[{label:"10 × 12",w:120,d:144},{label:"12 × 12",w:144,d:144},{label:"12 × 14",w:144,d:168},{label:"14 × 16",w:168,d:192},{label:"16 × 20",w:192,d:240},{label:"Galley 8 × 16",w:96,d:192}];
+
+let uidC=0; function uid(){uidC++;return 'id-'+Date.now().toString(36)+'-'+uidC+'-'+Math.floor(Math.random()*1e6).toString(36)}
+function clamp(v,lo,hi){return Math.min(hi,Math.max(lo,v))}
+function snap(v){return Math.round(v)}
+function effSize(it){return it.rotation%180===0?{w:it.wIn,d:it.dIn}:{w:it.dIn,d:it.wIn}}
+function itemRect(it){const s=effSize(it);return{x:it.xIn,y:it.yIn,w:s.w,d:s.d}}
+function rectsOverlap(a,b,shrink){shrink=shrink==null?0.06:shrink;return a.x+shrink<b.x+b.w-shrink&&b.x+shrink<a.x+a.w-shrink&&a.y+shrink<b.y+b.d-shrink&&b.y+shrink<a.y+a.d-shrink}
+function centerOf(r){return{x:r.x+r.w/2,y:r.y+r.d/2}}
+function fmtIn(ins){const r=Math.round(ins*10)/10;const ft=Math.floor(r/12);const rem=Math.round((r-ft*12)*10)/10;if(ft===0)return rem+'″';if(rem===0)return ft+'′';return ft+'′ '+rem+'″'}
+function fmtMoney(c){return (c/100).toLocaleString('en-US',{style:'currency',currency:'USD',maximumFractionDigits:c%100===0?0:2})}
+function openingPoint(op,room){const mid=op.offsetIn+op.widthIn/2;switch(op.wall){case'north':return{x:mid,y:0,nx:0,ny:-1,horizontal:true};case'south':return{x:mid,y:room.depthIn,nx:0,ny:1,horizontal:true};case'west':return{x:0,y:mid,nx:-1,ny:0,horizontal:false};case'east':return{x:room.widthIn,y:mid,nx:1,ny:0,horizontal:false}}}
+function distFt(a,b){return Math.hypot(a.x-b.x,a.y-b.y)/12}
+function analyze(data){
+  const room=data.room, items=data.items; const overlaps=[],outOfBounds=[],walkways=[];
+  for(const it of items){const r=itemRect(it); if(r.x<-0.05||r.y<-0.05||r.x+r.w>room.widthIn+0.05||r.y+r.d>room.depthIn+0.05) outOfBounds.push(it)}
+  for(let i=0;i<items.length;i++){const a=items[i],ra=itemRect(a); for(let j=i+1;j<items.length;j++){const b=items[j],rb=itemRect(b);
+    // Upper pieces (wall cabinets, cooktops, hoods) are meant to sit over floor pieces in plan view — never a collision.
+    if(a.layer!==b.layer) continue;
+    if(rectsOverlap(ra,rb)){overlaps.push({aId:a.id,bId:b.id,aName:a.name,bName:b.name}); continue}
+    if(a.layer==='floor'&&b.layer==='floor'){const ox=Math.min(ra.x+ra.w,rb.x+rb.w)-Math.max(ra.x,rb.x); const oy=Math.min(ra.y+ra.d,rb.y+rb.d)-Math.max(ra.y,rb.y);
+      // Skip the pair if another floor piece sits between them — that's a run of cabinets, not a walkway.
+      const blocked=(gr)=>items.some((k,ki)=>ki!==i&&ki!==j&&k.layer==='floor'&&rectsOverlap(gr,itemRect(k),-0.5));
+      if(ox>=12){const gapY=rb.y>=ra.y+ra.d?rb.y-(ra.y+ra.d):ra.y-(rb.y+rb.d); if(gapY>=8&&gapY<60){const top=rb.y>=ra.y+ra.d?ra:rb; const gr={x:Math.max(ra.x,rb.x),y:top.y+top.d,w:ox,d:gapY}; if(!blocked(gr)){const midX=Math.max(ra.x,rb.x)+ox/2; walkways.push({aId:a.id,bId:b.id,gapIn:gapY,severity:gapY<36?'narrow':gapY<42?'tight':'ok',x1:midX,y1:top.y+top.d,x2:midX,y2:top.y+top.d+gapY})}}}
+      else if(oy>=12){const gapX=rb.x>=ra.x+ra.w?rb.x-(ra.x+ra.w):ra.x-(rb.x+rb.w); if(gapX>=8&&gapX<60){const left=rb.x>=ra.x+ra.w?ra:rb; const gr={x:left.x+left.w,y:Math.max(ra.y,rb.y),w:gapX,d:oy}; if(!blocked(gr)){const midY=Math.max(ra.y,rb.y)+oy/2; walkways.push({aId:a.id,bId:b.id,gapIn:gapX,severity:gapX<36?'narrow':gapX<42?'tight':'ok',x1:left.x+left.w,y1:midY,x2:left.x+left.w+gapX,y2:midY})}}}
+    }}}
+  walkways.sort((p,q)=>p.gapIn-q.gapIn);
+  const sink=items.find(i=>i.role==='sink'), cook=items.find(i=>i.role==='cooking'), fridge=items.find(i=>i.role==='fridge'); let triangle=null;
+  if(sink&&cook&&fridge){const cs=centerOf(itemRect(sink)),cc=centerOf(itemRect(cook)),cf=centerOf(itemRect(fridge)); const sc=distFt(cs,cc),cf2=distFt(cc,cf),fs=distFt(cf,cs); const total=sc+cf2+fs; const legs=[sc,cf2,fs]; const ok=total>=13&&total<=26&&legs.every(l=>l>=4&&l<=9); triangle={legsFt:{sinkCook:sc,cookFridge:cf2,fridgeSink:fs},totalFt:total,ok,verdict: ok?"Inside the classic 13–26 ft work-triangle range, every leg 4–9 ft.": total<13?"Tighter than the classic 13 ft minimum — workable, but expect crowding with two cooks.": total>26?"Over the classic 26 ft maximum — lots of steps between sink, stove, and fridge.":"Total is in range, but one leg falls outside 4–9 ft."}}
+  let budget=0,priced=0; for(const it of items) if(it.priceCents!=null){budget+=it.priceCents;priced++}
+  return{overlaps,outOfBounds,walkways,triangle,budgetCents:budget,pricedCount:priced,unpricedCount:items.length-priced,areaSqFt:(room.widthIn*room.depthIn)/144}
+}
+function itemFromCatalog(e,x,y){return{id:uid(),catalogId:e.id,name:e.name,category:e.category,layer:e.layer,role:e.role,xIn:x,yIn:y,wIn:e.wIn,dIn:e.dIn,hIn:e.hIn,rotation:0,color:e.color,priceCents:null,productUrl:null,notes:null}}
+function emptyDesign(){return{room:{widthIn:168,depthIn:144,wallHeightIn:96},openings:[{id:uid(),wall:"north",offsetIn:54,widthIn:60,kind:"window"},{id:uid(),wall:"south",offsetIn:120,widthIn:36,kind:"door"}],items:[]}}
+function findSpot(data,w,d,layer){const W=data.room.widthIn,D=data.room.depthIn,others=data.items.filter(i=>i.layer===layer); for(let y=0;y+d<=D;y+=6) for(let x=0;x+w<=W;x+=6){const r={x,y,w,d}; if(!others.some(o=>rectsOverlap(r,itemRect(o),0))) return{x,y}} return{x:Math.max(0,Math.round((W-w)/2)),y:Math.max(0,Math.round((D-d)/2))}}
+function runTemplate(items,data,entryId,x,y,rot){rot=rot||0; const e=CATALOG.find(c=>c.id===entryId); if(!e)return; const it=itemFromCatalog(e,x,y); it.rotation=rot; items.push(it)}
+function layoutTemplate(kind,data){const W=data.room.widthIn,D=data.room.depthIn,items=[]; runTemplate(items,data,"fridge-36",0,0); runTemplate(items,data,"base-24",36,0); runTemplate(items,data,"sink-33",60,0); runTemplate(items,data,"dishwasher-24",93,0); runTemplate(items,data,"base-24",117,0); runTemplate(items,data,"wall-30",60,0); runTemplate(items,data,"wall-30",117,0);
+ if(kind==="l-shape"||kind==="u-shape"||kind==="island"){runTemplate(items,data,"range-30",3,36,90); runTemplate(items,data,"base-24",0,66,90); runTemplate(items,data,"trash-18",3,90,90); runTemplate(items,data,"hood-30",3,36,90)}
+ if(kind==="u-shape"){runTemplate(items,data,"base-36",24,D-24); runTemplate(items,data,"base-36",60,D-24); runTemplate(items,data,"pantry-24",W-24,D-24)}
+ if(kind==="galley"){runTemplate(items,data,"range-30",36,D-27); runTemplate(items,data,"base-36",66,D-24); runTemplate(items,data,"base-24",102,D-24)}
+ if(kind==="island"){runTemplate(items,data,"island-60",Math.max(48,W/2-30),Math.max(66,D/2-18)); runTemplate(items,data,"stool-16",Math.max(48,W/2-24),Math.max(66,D/2-18)+40); runTemplate(items,data,"stool-16",Math.max(48,W/2-4),Math.max(66,D/2-18)+40); runTemplate(items,data,"stool-16",Math.max(48,W/2+16),Math.max(66,D/2-18)+40)}
+ return items.filter(it=>{const r=itemRect(it); return r.x>=0&&r.y>=0&&r.x+r.w<=W&&r.y+r.d<=D})}
+function shortName(n){return n.replace(/\s+\d+(″|×\d+.*)$/,"").trim()||n}
+function esc(s){return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;")}
+
+// ---------- Design serializer (single source of truth: download + cloud save) ----------
+function serializeDesign(){const name=(document.getElementById('designName').value||'kitchen-design').trim(); return {app:'kitchen-designer',version:1,name,exportedAt:new Date().toISOString(),data:design};}
+
+// ---------- State ----------
+let design = emptyDesign();
+design.items = layoutTemplate("l-shape", design);
+let selectedItemId=null, selectedOpeningId=null, currentTab="add", searchQuery="", customOpen=false, confirmTemplate=null, confirmClear=false;
+let view={scale:2,tx:40,ty:40}; let containerSize={w:600,h:400}; let userMoved=false; let fitted=false;
+
+// ---------- DOM refs ----------
+const svg=document.getElementById('planSvg'), panel=document.getElementById('panel'), tabsNav=document.getElementById('tabsNav'), budgetPill=document.getElementById('budgetPill'), scaleLabel=document.getElementById('scaleLabel'), wrap=document.getElementById('svgWrap');
+
+function getAnalysis(){return analyze(design)}
+function issueCount(){const a=getAnalysis(); return a.overlaps.length+a.outOfBounds.length+a.walkways.filter(w=>w.severity!=="ok").length}
+
+// ---------- Tabs ----------
+const TABS=[{id:"add",label:"Add"},{id:"edit",label:"Edit"},{id:"room",label:"Room"},{id:"checks",label:"Checks"},{id:"share",label:"Keep & Share"},{id:"account",label:"Account"}];
+function renderTabs(){
+  const ic=issueCount();
+  tabsNav.innerHTML=TABS.map(t=>`<button data-tab="${t.id}" class="${currentTab===t.id?'active':''}">${t.label}${t.id==='checks'&&ic?`<span class="badge">${ic}</span>`:''}</button>`).join('');
+  tabsNav.querySelectorAll('button').forEach(b=>b.onclick=()=>{currentTab=b.dataset.tab; renderTabs(); renderPanel();});
+}
+function updateHeader(){const a=getAnalysis(); budgetPill.textContent=fmtMoney(a.budgetCents)+' · '+design.items.length+' pcs'; scaleLabel.textContent=view.scale.toFixed(1)+' px/in'; renderTabs();}
+
+// ---------- Canvas rendering ----------
+function renderCanvas(){
+  const W=design.room.widthIn, D=design.room.depthIn, a=getAnalysis();
+  const visX=-view.tx/view.scale, visY=-view.ty/view.scale, visW=containerSize.w/view.scale, visH=containerSize.h/view.scale;
+  const overlapIds=new Set(); a.overlaps.forEach(o=>{overlapIds.add(o.aId); overlapIds.add(o.bId)}); const oobIds=new Set(a.outOfBounds.map(i=>i.id));
+  let s='';
+  s+=`<defs><pattern id="grid-minor" width="6" height="6" patternUnits="userSpaceOnUse"><path d="M 6 0 H 0 V 6" fill="none" stroke="var(--bp-grid-minor)" stroke-width="0.3"/></pattern><pattern id="grid-major" width="12" height="12" patternUnits="userSpaceOnUse"><path d="M 12 0 H 0 V 12" fill="none" stroke="var(--bp-grid-major)" stroke-width="0.35"/></pattern><radialGradient id="bp-vignette" cx="50%" cy="42%" r="80%"><stop offset="0%" stop-color="#1a3a5c"/><stop offset="100%" stop-color="#0f2740"/></radialGradient></defs>`;
+  s+=`<rect x="${visX}" y="${visY}" width="${visW}" height="${visH}" fill="url(#bp-vignette)" data-bg="1"/>`;
+  s+=`<g transform="translate(${view.tx} ${view.ty}) scale(${view.scale})">`;
+  s+=`<rect x="${visX}" y="${visY}" width="${visW}" height="${visH}" fill="url(#grid-minor)"/><rect x="${visX}" y="${visY}" width="${visW}" height="${visH}" fill="url(#grid-major)"/>`;
+  // dimensions
+  s+=`<g stroke="var(--bp-dim)" stroke-width="0.4"><line x1="0" y1="-7" x2="${W}" y2="-7"/><line x1="0" y1="-9" x2="0" y2="-5"/><line x1="${W}" y1="-9" x2="${W}" y2="-5"/><line x1="-7" y1="0" x2="-7" y2="${D}"/><line x1="-9" y1="0" x2="-5" y2="0"/><line x1="-9" y1="${D}" x2="-5" y2="${D}"/></g>`;
+  s+=`<text x="${W/2}" y="-9.5" text-anchor="middle" font-size="4.4" fill="var(--bp-dim)" class="mono">${fmtIn(W)}</text>`;
+  s+=`<text x="-10" y="${D/2}" text-anchor="middle" font-size="4.4" fill="var(--bp-dim)" transform="rotate(-90 -10 ${D/2})">${fmtIn(D)}</text>`;
+  s+=`<rect x="0" y="0" width="${W}" height="${D}" fill="rgba(220,235,247,0.045)" stroke="var(--bp-line)" stroke-width="1.5"/>`;
+  s+=`<rect x="${W-1.6}" y="0" width="3.2" height="${D}" fill="transparent" data-type="wall" data-wall="east" style="cursor:ew-resize"/><rect x="0" y="${D-1.6}" width="${W}" height="3.2" fill="transparent" data-type="wall" data-wall="south" style="cursor:ns-resize"/>`;
+  // items
+  const ordered=[...design.items.filter(i=>i.layer==='floor'),...design.items.filter(i=>i.layer==='upper')];
+  for(const item of ordered){
+    const r=itemRect(item), selected=selectedItemId===item.id, bad=overlapIds.has(item.id)||oobIds.has(item.id);
+    let glyph='';
+    if(item.role==='sink') glyph=`<g stroke="var(--bp-item-edge)" fill="none" stroke-width="0.5" opacity="0.75"><rect x="${r.w*0.14}" y="${r.d*0.16}" width="${r.w*0.72}" height="${r.d*0.62}" rx="1.5"/><circle cx="${r.w/2}" cy="${r.d/2}" r="${Math.min(r.w,r.d)*0.09}"/></g>`;
+    else if(item.role==='cooking'&&item.catalogId!=='oven-30'){const rr=Math.min(r.w,r.d)*0.16; glyph=`<g stroke="var(--bp-item-edge)" fill="none" stroke-width="0.5" opacity="0.75"><circle cx="${r.w*0.28}" cy="${r.d*0.3}" r="${rr}"/><circle cx="${r.w*0.72}" cy="${r.d*0.3}" r="${rr*0.8}"/><circle cx="${r.w*0.28}" cy="${r.d*0.72}" r="${rr*0.8}"/><circle cx="${r.w*0.72}" cy="${r.d*0.72}" r="${rr}"/></g>`}
+    else if(item.role==='fridge') glyph=`<g stroke="var(--bp-item-edge)" stroke-width="0.5" opacity="0.7"><line x1="1" y1="1" x2="${r.w-1}" y2="${r.d-1}"/><line x1="${r.w*0.55}" y1="1" x2="${r.w*0.55}" y2="${r.d*0.45}" stroke-width="1"/></g>`;
+    s+=`<g><g transform="translate(${r.x} ${r.y})" data-type="item" data-id="${item.id}" style="cursor:grab"><rect x="0" y="0" width="${r.w}" height="${r.d}" fill="${item.color}" fill-opacity="${item.layer==='upper'?0.55:0.92}" stroke="${bad?'#e0705c':selected?'#e8a33d':'var(--bp-item-edge)'}" stroke-width="${selected||bad?1.1:0.6}" ${item.layer==='upper'?'stroke-dasharray="3 2"':''} rx="0.8"/>${glyph}</g>`;
+    if(r.w>=20&&r.d>=13) s+=`<g pointer-events="none"><text x="${r.x+r.w/2}" y="${r.y+r.d/2-0.4}" text-anchor="middle" font-size="3.5" font-weight="600" fill="#16324f" opacity="0.88">${esc(shortName(item.name))}</text><text x="${r.x+r.w/2}" y="${r.y+r.d/2+3.8}" text-anchor="middle" font-size="2.9" fill="#16324f" opacity="0.65">${Math.round(r.w)}×${Math.round(r.d)}</text></g>`;
+    else if(r.w>=13&&r.d>=10) s+=`<text x="${r.x+r.w/2}" y="${r.y+r.d/2+1.2}" text-anchor="middle" font-size="2.9" fill="#16324f" opacity="0.7" pointer-events="none">${Math.round(r.w)}×${Math.round(r.d)}</text>`;
+    if(selected) s+=`<g fill="#e8a33d" stroke="#16324f" stroke-width="0.4"><circle cx="${r.x+r.w}" cy="${r.y+r.d/2}" r="2" data-type="handle" data-id="${item.id}" data-handle="e" style="cursor:ew-resize"/><circle cx="${r.x+r.w/2}" cy="${r.y+r.d}" r="2" data-type="handle" data-id="${item.id}" data-handle="s" style="cursor:ns-resize"/><circle cx="${r.x+r.w}" cy="${r.y+r.d}" r="2.3" data-type="handle" data-id="${item.id}" data-handle="se" style="cursor:nwse-resize"/></g>`;
+    s+=`</g>`;
+  }
+  // openings
+  for(const op of design.openings){
+    const horiz=op.wall==='north'||op.wall==='south'; const wallY=op.wall==='north'?0:op.wall==='south'?D:null; const wallX=op.wall==='west'?0:op.wall==='east'?W:null; const selected=selectedOpeningId===op.id; const p=openingPoint(op,design.room);
+    if(horiz) s+=`<rect x="${op.offsetIn}" y="${wallY-1.6}" width="${op.widthIn}" height="3.2" fill="var(--bp-bg)"/>`; else s+=`<rect x="${wallX-1.6}" y="${op.offsetIn}" width="3.2" height="${op.widthIn}" fill="var(--bp-bg)"/>`;
+    if(op.kind==='window'){ if(horiz) s+=`<g stroke="var(--bp-line)" stroke-width="0.5"><line x1="${op.offsetIn}" y1="${wallY-0.8}" x2="${op.offsetIn+op.widthIn}" y2="${wallY-0.8}"/><line x1="${op.offsetIn}" y1="${wallY+0.8}" x2="${op.offsetIn+op.widthIn}" y2="${wallY+0.8}"/></g>`; else s+=`<g stroke="var(--bp-line)" stroke-width="0.5"><line x1="${wallX-0.8}" y1="${op.offsetIn}" x2="${wallX-0.8}" y2="${op.offsetIn+op.widthIn}"/><line x1="${wallX+0.8}" y1="${op.offsetIn}" x2="${wallX+0.8}" y2="${op.offsetIn+op.widthIn}"/></g>`}
+    if(op.kind==='cased'){ if(horiz) s+=`<g stroke="var(--bp-line)" stroke-width="0.6"><line x1="${op.offsetIn}" y1="${wallY-1.6}" x2="${op.offsetIn}" y2="${wallY+1.6}"/><line x1="${op.offsetIn+op.widthIn}" y1="${wallY-1.6}" x2="${op.offsetIn+op.widthIn}" y2="${wallY+1.6}"/></g>`; else s+=`<g stroke="var(--bp-line)" stroke-width="0.6"><line x1="${wallX-1.6}" y1="${op.offsetIn}" x2="${wallX+1.6}" y2="${op.offsetIn}"/><line x1="${wallX-1.6}" y1="${op.offsetIn+op.widthIn}" x2="${wallX+1.6}" y2="${op.offsetIn+op.widthIn}"/></g>`}
+    if(op.kind==='door'){const inw={x:-p.nx,y:-p.ny}; const hinge=horiz?{x:op.offsetIn,y:wallY}:{x:wallX,y:op.offsetIn}; const leafEnd={x:hinge.x+inw.x*op.widthIn*0.94,y:hinge.y+inw.y*op.widthIn*0.94}; const closed=horiz?{x:hinge.x+op.widthIn,y:hinge.y}:{x:hinge.x,y:hinge.y+op.widthIn}; const sweep=(op.wall==='south'||op.wall==='east')?0:1; s+=`<g stroke="var(--bp-dim)" fill="none" stroke-width="0.45" opacity="0.85"><line x1="${hinge.x}" y1="${hinge.y}" x2="${leafEnd.x}" y2="${leafEnd.y}"/><path d="M ${closed.x} ${closed.y} A ${op.widthIn} ${op.widthIn} 0 0 ${sweep} ${leafEnd.x} ${leafEnd.y}" stroke-dasharray="2.5 2"/></g>`}
+    if(selected){ if(horiz) s+=`<rect x="${op.offsetIn-1}" y="${wallY-2.6}" width="${op.widthIn+2}" height="5.2" fill="none" stroke="#e8a33d" stroke-width="0.7" stroke-dasharray="3 2" pointer-events="none"/>`; else s+=`<rect x="${wallX-2.6}" y="${op.offsetIn-1}" width="5.2" height="${op.widthIn+2}" fill="none" stroke="#e8a33d" stroke-width="0.7" stroke-dasharray="3 2" pointer-events="none"/>`}
+    if(horiz) s+=`<rect x="${op.offsetIn}" y="${wallY-3.4}" width="${op.widthIn}" height="6.8" fill="transparent" data-type="opening" data-id="${op.id}" style="cursor:ew-resize"/>`; else s+=`<rect x="${wallX-3.4}" y="${op.offsetIn}" width="6.8" height="${op.widthIn}" fill="transparent" data-type="opening" data-id="${op.id}" style="cursor:ns-resize"/>`;
+  }
+  // walkways
+  a.walkways.filter(w=>w.gapIn<48).forEach(wk=>{const color=wk.severity==='narrow'?'#e0705c':wk.severity==='tight'?'#e8a33d':'#7fc98f'; const mx=(wk.x1+wk.x2)/2,my=(wk.y1+wk.y2)/2; s+=`<g pointer-events="none"><line x1="${wk.x1}" y1="${wk.y1}" x2="${wk.x2}" y2="${wk.y2}" stroke="${color}" stroke-width="0.55" stroke-dasharray="2.5 1.8"/><rect x="${mx-5.4}" y="${my-2.6}" width="10.8" height="5.2" rx="1.4" fill="#0f2740" stroke="${color}" stroke-width="0.4"/><text x="${mx}" y="${my+1.5}" text-anchor="middle" font-size="3.4" fill="${color}">${Math.round(wk.gapIn)}″</text></g>`});
+  s+=`</g>`;
+  svg.innerHTML=s;
+  scaleLabel.textContent=view.scale.toFixed(1)+' px/in';
+}
+function fit(){const w=containerSize.w,h=containerSize.h; if(w<10||h<10)return; const W=design.room.widthIn,D=design.room.depthIn; const scale=Math.min(w/(W+56),h/(D+56)); view={scale,tx:(w-W*scale)/2,ty:(h-D*scale)/2}; renderCanvas(); updateHeader();}
+function toInches(cx,cy){const r=svg.getBoundingClientRect(); const px=cx-r.left, py=cy-r.top; return{x:(px-view.tx)/view.scale, y:(py-view.ty)/view.scale, px,py}}
+function zoomBy(f){userMoved=true; const cx=containerSize.w/2, cy=containerSize.h/2; const scale=clamp(view.scale*f,0.4,14); view={scale,tx:cx-((cx-view.tx)/view.scale)*scale, ty:cy-((cy-view.ty)/view.scale)*scale}; renderCanvas(); updateHeader();}
+
+// ---------- Pointer handling ----------
+let drag=null; const pointers=new Map();
+svg.addEventListener('pointerdown',e=>{
+  const t=e.target.closest('[data-type]'); userMoved=true;
+  pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  try{svg.setPointerCapture(e.pointerId)}catch(_){}
+  if(pointers.size===2){const pts=[...pointers.values()]; const mid=toInches((pts[0].x+pts[1].x)/2,(pts[0].y+pts[1].y)/2); drag={type:'pinch',startDist:Math.hypot(pts[0].x-pts[1].x,pts[0].y-pts[1].y),startScale:view.scale,midInchX:mid.x,midInchY:mid.y}; return}
+  if(!t){ selectedItemId=null; selectedOpeningId=null; drag={type:'pan',startX:e.clientX,startY:e.clientY,origTx:view.tx,origTy:view.ty}; renderCanvas(); if(currentTab==='edit') renderPanel(); return}
+  const type=t.dataset.type;
+  if(type==='item'){const item=design.items.find(i=>i.id===t.dataset.id); if(!item)return; selectedItemId=item.id; selectedOpeningId=null; currentTab='edit'; const inch=toInches(e.clientX,e.clientY); drag={type:'item',id:item.id,grabDX:inch.x-item.xIn,grabDY:inch.y-item.yIn}; renderTabs(); renderCanvas(); renderPanel(); e.stopPropagation(); return}
+  if(type==='opening'){const op=design.openings.find(o=>o.id===t.dataset.id); if(!op)return; selectedOpeningId=op.id; selectedItemId=null; currentTab='edit'; const inch=toInches(e.clientX,e.clientY); const along=(op.wall==='north'||op.wall==='south')?inch.x:inch.y; drag={type:'opening',id:op.id,grabOff:along-op.offsetIn}; renderTabs(); renderCanvas(); renderPanel(); e.stopPropagation(); return}
+  if(type==='handle'){drag={type:'resize',id:t.dataset.id,handle:t.dataset.handle}; e.stopPropagation(); return}
+  if(type==='wall'){drag={type:'wall',wall:t.dataset.wall}; e.stopPropagation(); return}
+});
+svg.addEventListener('pointermove',e=>{
+  if(pointers.has(e.pointerId)) pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(!drag) return; const inch=toInches(e.clientX,e.clientY); const W=design.room.widthIn,D=design.room.depthIn;
+  if(drag.type==='pinch'){const pts=[...pointers.values()]; if(pts.length<2)return; const dist=Math.hypot(pts[0].x-pts[1].x,pts[0].y-pts[1].y); const r=svg.getBoundingClientRect(); const midPx=(pts[0].x+pts[1].x)/2-r.left, midPy=(pts[0].y+pts[1].y)/2-r.top; const scale=clamp(drag.startScale*(dist/Math.max(20,drag.startDist)),0.4,14); view={scale,tx:midPx-drag.midInchX*scale,ty:midPy-drag.midInchY*scale}; renderCanvas(); return}
+  if(drag.type==='pan'){view={...view,tx:drag.origTx+(e.clientX-drag.startX),ty:drag.origTy+(e.clientY-drag.startY)}; renderCanvas(); return}
+  if(drag.type==='item'){const item=design.items.find(i=>i.id===drag.id); if(!item)return; const r=itemRect(item); item.xIn=clamp(snap(inch.x-drag.grabDX),0,Math.max(0,W-r.w)); item.yIn=clamp(snap(inch.y-drag.grabDY),0,Math.max(0,D-r.d)); renderCanvas(); updateHeader(); syncEditInputs(); return}
+  if(drag.type==='opening'){const op=design.openings.find(o=>o.id===drag.id); if(!op)return; const along=(op.wall==='north'||op.wall==='south')?inch.x:inch.y; const wallLen=(op.wall==='north'||op.wall==='south')?W:D; op.offsetIn=clamp(snap(along-drag.grabOff),0,Math.max(0,wallLen-op.widthIn)); renderCanvas(); syncEditInputs(); return}
+  if(drag.type==='resize'){const item=design.items.find(i=>i.id===drag.id); if(!item)return; const r=itemRect(item); let ew=r.w,ed=r.d; if(drag.handle==='e'||drag.handle==='se') ew=clamp(snap(inch.x-r.x),6,600); if(drag.handle==='s'||drag.handle==='se') ed=clamp(snap(inch.y-r.y),6,600); const swapped=item.rotation%180!==0; item.wIn=swapped?ed:ew; item.dIn=swapped?ew:ed; renderCanvas(); updateHeader(); syncEditInputs(); return}
+  if(drag.type==='wall'){if(drag.wall==='east') design.room.widthIn=clamp(snap(inch.x),48,720); else design.room.depthIn=clamp(snap(inch.y),48,720); renderCanvas(); updateHeader(); syncEditInputs(); return}
+});
+function endDrag(e){pointers.delete(e.pointerId); if(pointers.size===0) drag=null; else if(drag&&drag.type==='pinch') drag=null}
+svg.addEventListener('pointerup',endDrag); svg.addEventListener('pointercancel',endDrag);
+svg.addEventListener('wheel',e=>{e.preventDefault(); userMoved=true; const r=svg.getBoundingClientRect(); const px=e.clientX-r.left, py=e.clientY-r.top; const factor=e.deltaY<0?1.12:0.89; const scale=clamp(view.scale*factor,0.4,14); view={scale,tx:px-((px-view.tx)/view.scale)*scale, ty:py-((py-view.ty)/view.scale)*scale}; renderCanvas(); updateHeader();},{passive:false});
+document.getElementById('zoomIn').onclick=()=>zoomBy(1.25);
+document.getElementById('zoomOut').onclick=()=>zoomBy(0.8);
+document.getElementById('zoomFit').onclick=()=>fit();
+new ResizeObserver(()=>{const r=wrap.getBoundingClientRect(); const old=containerSize; containerSize={w:r.width,h:r.height}; if(!fitted&&r.width>10){fitted=true; fit()} else if(!userMoved && (Math.abs(old.w-r.width)>2||Math.abs(old.h-r.height)>2)){fit()} else renderCanvas()}).observe(wrap);
+
+function syncEditInputs(){
+  // update numeric inputs in Edit/Room panels without stealing focus
+  const active=document.activeElement;
+  document.querySelectorAll('[data-bind]').forEach(inp=>{
+    if(inp===active) return;
+    const path=inp.dataset.bind; let val=null;
+    if(path==='item.x') {const it=design.items.find(i=>i.id===selectedItemId); if(it) val=Math.round(it.xIn*10)/10}
+    if(path==='item.y') {const it=design.items.find(i=>i.id===selectedItemId); if(it) val=Math.round(it.yIn*10)/10}
+    if(path==='item.w') {const it=design.items.find(i=>i.id===selectedItemId); if(it) val=Math.round(it.wIn*10)/10}
+    if(path==='item.d') {const it=design.items.find(i=>i.id===selectedItemId); if(it) val=Math.round(it.dIn*10)/10}
+    if(path==='room.w') val=design.room.widthIn; if(path==='room.d') val=design.room.depthIn;
+    if(path==='opening.offset'){const op=design.openings.find(o=>o.id===selectedOpeningId); if(op) val=op.offsetIn}
+    if(val!=null) inp.value=val;
+  });
+}
+
+// ---------- Helpers for panels ----------
+function numField(label,bind,value,min,max,onchange){
+  return `<label class="field"><span>${label}</span><input data-bind="${bind}" data-min="${min}" data-max="${max}" type="number" inputmode="decimal" value="${Math.round(value*10)/10}" onchange="window.__numChange(this, '${bind}')"></label>`;
+}
+window.__numChange=function(el,bind){
+  const v=clamp(parseFloat(el.value)||0, parseFloat(el.dataset.min||0), parseFloat(el.dataset.max||9999));
+  if(bind==='item.x'){const it=design.items.find(i=>i.id===selectedItemId); if(it) it.xIn=v}
+  if(bind==='item.y'){const it=design.items.find(i=>i.id===selectedItemId); if(it) it.yIn=v}
+  if(bind==='item.w'){const it=design.items.find(i=>i.id===selectedItemId); if(it) it.wIn=v}
+  if(bind==='item.d'){const it=design.items.find(i=>i.id===selectedItemId); if(it) it.dIn=v}
+  if(bind==='item.h'){const it=design.items.find(i=>i.id===selectedItemId); if(it) it.hIn=v}
+  if(bind==='room.w'){design.room.widthIn=v; fit()}
+  if(bind==='room.d'){design.room.depthIn=v; fit()}
+  if(bind==='room.h'){design.room.wallHeightIn=v}
+  if(bind==='opening.offset'){const op=design.openings.find(o=>o.id===selectedOpeningId); if(op) op.offsetIn=v}
+  if(bind==='opening.width'){const op=design.openings.find(o=>o.id===selectedOpeningId); if(op){op.widthIn=v; const len=(op.wall==='north'||op.wall==='south')?design.room.widthIn:design.room.depthIn; op.offsetIn=clamp(op.offsetIn,0,Math.max(0,len-v))}}
+  renderCanvas(); updateHeader();
+};
+function finishPicker(current){
+  return `<fieldset style="border:none;padding:0;margin:0"><legend class="label">Finish</legend><div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px">${FINISHES.map(f=>`<button class="finish-dot ${current===f.hex?'sel':''}" style="background:${f.hex}" title="${f.name}" aria-label="Finish ${f.name}" data-finish="${f.hex}"></button>`).join('')}<input type="color" value="${current}" data-colorpick style="width:40px;height:32px;border:1px solid var(--border);border-radius:6px;background:transparent"></div></fieldset>`;
+}
+function selectItem(id){selectedItemId=id; if(id){selectedOpeningId=null; currentTab='edit'} renderTabs(); renderCanvas(); renderPanel();}
+function selectOpening(id){selectedOpeningId=id; if(id){selectedItemId=null; currentTab='edit'} renderTabs(); renderCanvas(); renderPanel();}
+
+// ---------- Panels ----------
+function renderPanel(){
+  if(currentTab==='add') renderAdd();
+  else if(currentTab==='edit') renderEdit();
+  else if(currentTab==='room') renderRoom();
+  else if(currentTab==='checks') renderChecks();
+  else if(currentTab==='share') renderShare();
+  else if(currentTab==='account') renderAccount();
+}
+function renderAdd(){
+  const q=searchQuery.trim().toLowerCase();
+  const matches=e=>!q||e.name.toLowerCase().includes(q)||e.blurb.toLowerCase().includes(q)||e.category.toLowerCase().includes(q);
+  let h=`<input class="search-input" id="searchBox" type="search" placeholder="Search cabinets, appliances…" value="${esc(searchQuery)}" aria-label="Search">`;
+  for(const cat of CATEGORIES){const entries=CATALOG.filter(e=>e.category===cat&&matches(e)); if(!entries.length) continue;
+    h+=`<section style="margin-top:20px"><h2 class="font-display" style="font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--dim);margin:0">${cat}</h2>`;
+    for(const e of entries) h+=`<div class="cat-item"><span class="swatch" style="background:${e.color}"></span><span style="flex:1;min-width:0"><span style="display:block;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${e.name}</span><span class="mono" style="font-size:12px;color:var(--dim)">${e.wIn}×${e.dIn}×${e.hIn}″ · ${e.blurb}</span></span><button class="btn btn-primary" style="padding:7px 14px" data-add="${e.id}">Add</button></div>`;
+    h+=`</section>`;
+  }
+  if(CATALOG.every(e=>!matches(e))) h+=`<p style="color:var(--dim);margin-top:16px">Nothing matches — add it as a custom product below.</p>`;
+  // custom product
+  h+=`<section style="margin-top:28px;border-top:1px solid var(--border);padding-top:16px"><h2 class="font-display" style="font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--dim);margin:0">Your own product</h2><p style="font-size:14px;color:var(--dim);margin:6px 0 0">Found a specific fridge, range, or cabinet? Add it with real dimensions, price, and link — it drops right onto the plan.</p>`;
+  if(!customOpen){h+=`<button class="btn btn-oak" id="openCustom" style="width:100%;margin-top:12px;color:#fff">Add a custom product</button>`}
+  else{
+    h+=`<div style="display:flex;flex-direction:column;gap:12px;margin-top:12px">
+      <label class="field"><span>Product name</span><input id="cp-name" placeholder="e.g. Bosch 800 Series fridge"></label>
+      <div class="grid2"><label class="field"><span>Type</span><select id="cp-cat"><option>Appliances</option><option>Cabinets</option><option>Islands & seating</option><option>Custom</option></select></label><label class="field"><span>Sits</span><select id="cp-layer"><option value="floor">On the floor</option><option value="upper">On counter / wall</option></select></label></div>
+      <div class="grid3"><label class="field"><span>Width (in)</span><input id="cp-w" type="number" value="30"></label><label class="field"><span>Depth (in)</span><input id="cp-d" type="number" value="24"></label><label class="field"><span>Height (in)</span><input id="cp-h" type="number" value="36"></label></div>
+      <div class="grid2"><label class="field"><span>Price ($)</span><input id="cp-price" placeholder="Optional"></label><label class="field"><span>Product link</span><input id="cp-url" placeholder="https://…"></label></div>
+      <label class="field"><span>Notes</span><textarea id="cp-notes" rows="2" placeholder="Model, finish, store…"></textarea></label>
+      <div id="cp-finish">${finishPicker(FINISHES[0].hex)}</div><p id="cp-err" style="color:var(--rust);font-size:14px;margin:0"></p>
+      <div style="display:flex;gap:8px"><button class="btn btn-primary" id="cp-submit" style="flex:1">Add to plan</button><button class="btn" id="cp-cancel">Cancel</button></div>
+    </div>`;
+  }
+  h+=`</section>`;
+  // templates
+  h+=`<section style="margin-top:28px;border-top:1px solid var(--border);padding-top:16px"><h2 class="font-display" style="font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--dim);margin:0">Starter layouts</h2><p style="font-size:14px;color:var(--dim)">Drop a classic layout into the current room, then adjust it. This replaces every piece.</p><div class="grid2" style="gap:8px;margin-top:10px">${[['l-shape','L-shape'],['u-shape','U-shape'],['galley','Galley'],['island','Island']].map(([k,l])=>`<button class="btn ${confirmTemplate===k?'btn-rust':''}" data-template="${k}">${confirmTemplate===k?'Tap again to replace':l}</button>`).join('')}</div>
+  <button class="btn" id="clearAllBtn" style="width:100%;margin-top:8px">${confirmClear?'Tap again to clear everything':'Clear all pieces'}</button></section>`;
+  panel.innerHTML=h;
+  const sb=document.getElementById('searchBox'); sb.oninput=()=>{searchQuery=sb.value; const pos=sb.selectionStart; renderAdd(); const nb=document.getElementById('searchBox'); nb.focus(); nb.setSelectionRange(pos,pos)};
+  panel.querySelectorAll('[data-add]').forEach(b=>b.onclick=()=>{const e=CATALOG.find(c=>c.id===b.dataset.add); const spot=findSpot(design,e.wIn,e.dIn,e.layer); const it=itemFromCatalog(e,spot.x,spot.y); design.items.push(it); selectedItemId=it.id; selectedOpeningId=null; currentTab='edit'; renderTabs(); renderCanvas(); updateHeader(); renderPanel();});
+  const oc=document.getElementById('openCustom'); if(oc) oc.onclick=()=>{customOpen=true; renderPanel()};
+  const cc=document.getElementById('cp-cancel'); if(cc) cc.onclick=()=>{customOpen=false; renderPanel()};
+  const cs=document.getElementById('cp-submit'); if(cs) cs.onclick=()=>{
+    const name=document.getElementById('cp-name').value.trim(); const w=parseFloat(document.getElementById('cp-w').value), d=parseFloat(document.getElementById('cp-d').value), hh=parseFloat(document.getElementById('cp-h').value)||0;
+    const err=document.getElementById('cp-err');
+    if(!name){err.textContent='Give the product a name.'; return} if(!(w>0&&d>0)){err.textContent='Width and depth must be more than zero.'; return}
+    const price=parseFloat(document.getElementById('cp-price').value); const colorEl=document.querySelector('#cp-finish .finish-dot.sel'); const color=colorEl?colorEl.dataset.finish:FINISHES[0].hex;
+    const spot=findSpot(design,w,d,document.getElementById('cp-layer').value);
+    const it={id:uid(),catalogId:null,name,category:document.getElementById('cp-cat').value,layer:document.getElementById('cp-layer').value,role:null,xIn:spot.x,yIn:spot.y,wIn:w,dIn:d,hIn:hh,rotation:0,color,priceCents:isFinite(price)&&price>=0?Math.round(price*100):null,productUrl:document.getElementById('cp-url').value.trim()||null,notes:document.getElementById('cp-notes').value.trim()||null};
+    design.items.push(it); customOpen=false; selectedItemId=it.id; currentTab='edit'; renderTabs(); renderCanvas(); updateHeader(); renderPanel();
+  };
+  // finish picker in custom form
+  panel.querySelectorAll('#cp-finish [data-finish]').forEach(b=>b.onclick=()=>{panel.querySelectorAll('#cp-finish .finish-dot').forEach(x=>x.classList.remove('sel')); b.classList.add('sel')});
+  const cpick=panel.querySelector('[data-colorpick]'); if(cpick) cpick.oninput=()=>{panel.querySelectorAll('#cp-finish .finish-dot').forEach(x=>x.classList.remove('sel'))};
+  panel.querySelectorAll('[data-template]').forEach(b=>b.onclick=()=>{const k=b.dataset.template; if(confirmTemplate===k){design.items=layoutTemplate(k,design); confirmTemplate=null; selectedItemId=null; renderCanvas(); updateHeader(); renderPanel()} else {confirmTemplate=k; renderPanel()}});
+  const clr=document.getElementById('clearAllBtn'); if(clr) clr.onclick=()=>{if(confirmClear){design.items=[]; confirmClear=false; selectedItemId=null; renderCanvas(); updateHeader(); renderPanel()} else {confirmClear=true; renderPanel()}};
+}
+function renderEdit(){
+  const item=design.items.find(i=>i.id===selectedItemId); const opening=design.openings.find(o=>o.id===selectedOpeningId);
+  if(item){
+    panel.innerHTML=`<div style="display:flex;flex-direction:column;gap:16px">
+      <label class="field"><span>Name</span><input id="ed-name" value="${esc(item.name)}" style="font-weight:600"></label>
+      <p class="mono" style="font-size:12px;color:var(--dim);margin:-8px 0 0">${esc(item.category)}${item.role==='sink'?' · sink (work triangle)':item.role==='cooking'?' · cooking (work triangle)':item.role==='fridge'?' · fridge (work triangle)':''}${item.layer==='upper'?' · sits on counter / wall':''}</p>
+      <div class="grid2">${numField('X — from left wall (in)','item.x',item.xIn,0,1200)}${numField('Y — from top wall (in)','item.y',item.yIn,0,1200)}</div>
+      <div class="grid3">${numField('Width (in)','item.w',item.wIn,4,600)}${numField('Depth (in)','item.d',item.dIn,4,600)}${numField('Height (in)','item.h',item.hIn,0,240)}</div>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><button class="btn" id="ed-rotate">⟳ Rotate 90°</button><span class="mono" style="font-size:13px;color:var(--dim)">now ${item.rotation}°</span><label style="margin-left:auto;display:flex;align-items:center;gap:6px"><span class="label">Sits</span><select id="ed-layer" style="border:1px solid var(--border);background:var(--bg);border-radius:6px;padding:7px"><option value="floor" ${item.layer==='floor'?'selected':''}>Floor</option><option value="upper" ${item.layer==='upper'?'selected':''}>Counter / wall</option></select></label></div>
+      <div id="ed-finish">${finishPicker(item.color)}</div>
+      <div class="grid2"><label class="field"><span>Price ($)</span><input id="ed-price" inputmode="decimal" value="${item.priceCents!=null?item.priceCents/100:''}" placeholder="Not priced"></label><label class="field"><span>Product link</span><input id="ed-url" value="${esc(item.productUrl||'')}" placeholder="https://…"></label></div>
+      ${item.productUrl?`<a href="${esc(item.productUrl)}" target="_blank" rel="noreferrer" style="font-size:14px;font-weight:600">Open product page ↗</a>`:''}
+      <label class="field"><span>Notes</span><textarea id="ed-notes" rows="2" placeholder="Model, finish, quote details…">${esc(item.notes||'')}</textarea></label>
+      <div style="display:flex;gap:8px;border-top:1px solid var(--border);padding-top:12px"><button class="btn" id="ed-dup" style="flex:1">Duplicate</button><button class="btn btn-rust" id="ed-del" style="flex:1">Delete</button></div>
+      <p style="font-size:12px;color:var(--dim);margin:0">Tip: drag the orange dots on the plan to resize, or drag the piece itself to move it.</p>
+    </div>`;
+    document.getElementById('ed-name').oninput=e=>{item.name=e.target.value; renderCanvas()};
+    document.getElementById('ed-rotate').onclick=()=>{const rot=(item.rotation+90)%360; item.rotation=rot; const sw=rot%180!==0; const ew=sw?item.dIn:item.wIn, ed=sw?item.wIn:item.dIn; item.xIn=clamp(item.xIn,0,Math.max(0,design.room.widthIn-ew)); item.yIn=clamp(item.yIn,0,Math.max(0,design.room.depthIn-ed)); renderCanvas(); renderPanel(); updateHeader()};
+    document.getElementById('ed-layer').onchange=e=>{item.layer=e.target.value; renderCanvas(); renderPanel()};
+    panel.querySelectorAll('#ed-finish [data-finish]').forEach(b=>b.onclick=()=>{item.color=b.dataset.finish; renderCanvas(); renderPanel()});
+    const cp=panel.querySelector('#ed-finish [data-colorpick]'); if(cp) cp.oninput=()=>{item.color=cp.value; renderCanvas()};
+    document.getElementById('ed-price').onchange=e=>{const v=parseFloat(e.target.value); item.priceCents=(e.target.value.trim()===''||!isFinite(v))?null:Math.max(0,Math.round(v*100)); updateHeader(); renderCanvas()};
+    document.getElementById('ed-url').onchange=e=>{item.productUrl=e.target.value.trim()||null; renderPanel()};
+    document.getElementById('ed-notes').onchange=e=>{item.notes=e.target.value||null};
+    document.getElementById('ed-dup').onclick=()=>{const copy={...item,id:uid()}; const r=itemRect(item); copy.xIn=clamp(item.xIn+12,0,Math.max(0,design.room.widthIn-r.w)); copy.yIn=clamp(item.yIn+12,0,Math.max(0,design.room.depthIn-r.d)); design.items.push(copy); selectedItemId=copy.id; renderCanvas(); updateHeader(); renderPanel()};
+    document.getElementById('ed-del').onclick=()=>{design.items=design.items.filter(i=>i.id!==item.id); selectedItemId=null; renderCanvas(); updateHeader(); renderPanel()};
+    return;
+  }
+  if(opening){
+    const wallLen=(opening.wall==='north'||opening.wall==='south')?design.room.widthIn:design.room.depthIn;
+    panel.innerHTML=`<div style="display:flex;flex-direction:column;gap:16px"><h2 class="font-display" style="font-size:18px;margin:0">${opening.kind==='door'?'Door':opening.kind==='window'?'Window':'Cased opening'}</h2>
+    <div class="grid2"><label class="field"><span>Kind</span><select id="op-kind"><option value="door" ${opening.kind==='door'?'selected':''}>Door</option><option value="window" ${opening.kind==='window'?'selected':''}>Window</option><option value="cased" ${opening.kind==='cased'?'selected':''}>Cased opening</option></select></label>
+    <label class="field"><span>Wall</span><select id="op-wall"><option value="north" ${opening.wall==='north'?'selected':''}>Top (north)</option><option value="south" ${opening.wall==='south'?'selected':''}>Bottom (south)</option><option value="west" ${opening.wall==='west'?'selected':''}>Left (west)</option><option value="east" ${opening.wall==='east'?'selected':''}>Right (east)</option></select></label></div>
+    <div class="grid2">${numField('Position along wall (in)','opening.offset',opening.offsetIn,0,Math.max(0,wallLen-opening.widthIn))}${numField('Width (in)','opening.width',opening.widthIn,12,wallLen)}</div>
+    <p style="font-size:14px;color:var(--dim);margin:0">You can also drag it along its wall right on the plan.</p>
+    <button class="btn btn-rust" id="op-del">Delete opening</button></div>`;
+    document.getElementById('op-kind').onchange=e=>{opening.kind=e.target.value; renderCanvas(); renderPanel()};
+    document.getElementById('op-wall').onchange=e=>{const w=e.target.value; const len=(w==='north'||w==='south')?design.room.widthIn:design.room.depthIn; opening.wall=w; opening.offsetIn=clamp(opening.offsetIn,0,Math.max(0,len-opening.widthIn)); renderCanvas(); renderPanel()};
+    document.getElementById('op-del').onclick=()=>{design.openings=design.openings.filter(o=>o.id!==opening.id); selectedOpeningId=null; renderCanvas(); renderPanel()};
+    return;
+  }
+  panel.innerHTML=`<div style="color:var(--dim)"><p class="font-display" style="font-size:18px;font-weight:800;color:var(--text);margin:0">Nothing selected</p><p style="margin-top:8px;line-height:1.5">Tap any cabinet, appliance, door, or window on the plan to edit it — move it, resize it, spin it, change its finish, or attach a real product with a price and link.</p><p class="mono" style="font-size:13px;margin-top:16px">Room ${fmtIn(design.room.widthIn)} × ${fmtIn(design.room.depthIn)} · ${design.items.length} pieces · ${design.openings.length} openings</p></div>`;
+}
+function renderRoom(){
+  const wallName=w=>({north:"Top",south:"Bottom",west:"Left",east:"Right"})[w];
+  panel.innerHTML=`<div style="display:flex;flex-direction:column;gap:24px">
+    <section><h2 class="font-display" style="font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--dim);margin:0">Room size</h2>
+    <div class="grid3" style="margin-top:12px">${numField('Width (in)','room.w',design.room.widthIn,48,720)}${numField('Depth (in)','room.d',design.room.depthIn,48,720)}${numField('Ceiling (in)','room.h',design.room.wallHeightIn,48,240)}</div>
+    <p class="mono" style="font-size:13px;color:var(--dim)">${fmtIn(design.room.widthIn)} × ${fmtIn(design.room.depthIn)} · ceiling ${fmtIn(design.room.wallHeightIn)} · ${Math.round(design.room.widthIn*design.room.depthIn/144)} sq ft</p>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px">${ROOM_PRESETS.map(p=>`<button class="btn" data-preset="${p.w},${p.d}" style="padding:7px 12px;font-size:13px;${design.room.widthIn===p.w&&design.room.depthIn===p.d?'border-color:var(--oak);background:var(--surface-alt)':''}">${p.label}′</button>`).join('')}</div>
+    <p style="font-size:13px;color:var(--dim)">You can also drag the right or bottom wall on the plan itself.</p></section>
+    <section><h2 class="font-display" style="font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--dim);margin:0">Doors & windows</h2>
+    ${design.openings.length===0?`<p style="font-size:14px;color:var(--dim)">No openings yet — add the doors and windows your room actually has.</p>`:''}
+    <div>${design.openings.map(o=>`<button data-opening="${o.id}" style="display:flex;width:100%;justify-content:space-between;padding:10px 0;border:none;border-bottom:1px solid var(--border);background:transparent;text-align:left"><span style="font-weight:600;text-transform:capitalize">${o.kind==='cased'?'Cased opening':o.kind} · ${wallName(o.wall)} wall</span><span class="mono" style="font-size:13px;color:var(--dim)">${Math.round(o.widthIn)}″ wide at ${Math.round(o.offsetIn)}″</span></button>`).join('')}</div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px"><button class="btn btn-primary" data-addop="door">+ Door</button><button class="btn btn-primary" data-addop="window">+ Window</button><button class="btn btn-primary" data-addop="cased">+ Cased opening</button></div></section>
+  </div>`;
+  panel.querySelectorAll('[data-preset]').forEach(b=>b.onclick=()=>{const [w,d]=b.dataset.preset.split(',').map(Number); design.room.widthIn=w; design.room.depthIn=d; fit(); renderPanel()});
+  panel.querySelectorAll('[data-opening]').forEach(b=>b.onclick=()=>selectOpening(b.dataset.opening));
+  panel.querySelectorAll('[data-addop]').forEach(b=>b.onclick=()=>{const kind=b.dataset.addop; const wall=kind==='window'?'north':kind==='door'?'south':'east'; const widthIn=kind==='window'?48:36; const wallLen=(wall==='north'||wall==='south')?design.room.widthIn:design.room.depthIn; const op={id:uid(),wall,kind,widthIn,offsetIn:clamp(Math.round(wallLen/2-widthIn/2),0,Math.max(0,wallLen-widthIn))}; design.openings.push(op); selectOpening(op.id); renderCanvas();});
+}
+function renderChecks(){
+  const a=getAnalysis(); const nameOf=id=>design.items.find(i=>i.id===id)?.name||'Piece';
+  const sevColor=s=>s==='narrow'?'var(--rust)':s==='tight'?'var(--oak)':'var(--good)'; const sevLabel=s=>s==='narrow'?'Too narrow':s==='tight'?'Tight':'Comfortable';
+  const allClear=a.overlaps.length===0&&a.outOfBounds.length===0&&a.walkways.every(w=>w.severity==='ok');
+  let h=`<div style="display:flex;flex-direction:column;gap:22px">
+  <section style="background:var(--surface-alt);border-radius:10px;padding:14px 16px"><p class="label" style="margin:0">Budget from priced pieces</p><p class="font-display" style="font-size:30px;font-weight:800;margin:4px 0 0">${fmtMoney(a.budgetCents)}</p><p class="mono" style="font-size:13px;color:var(--dim);margin:4px 0 0">${a.pricedCount} priced · ${a.unpricedCount} without a price · room ${Math.round(a.areaSqFt)} sq ft</p></section>
+  <section><h2 class="font-display" style="font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--dim);margin:0">Work triangle</h2>`;
+  if(a.triangle) h+=`<p class="mono" style="margin-top:8px">Sink→stove ${a.triangle.legsFt.sinkCook.toFixed(1)}′ · Stove→fridge ${a.triangle.legsFt.cookFridge.toFixed(1)}′ · Fridge→sink ${a.triangle.legsFt.fridgeSink.toFixed(1)}′ · Total ${a.triangle.totalFt.toFixed(1)}′</p><p style="display:flex;gap:8px;font-size:14px"><span style="color:${a.triangle.ok?'var(--good)':'var(--oak)'}">${a.triangle.ok?'●':'▲'}</span><span>${a.triangle.verdict}</span></p>`;
+  else h+=`<p style="font-size:14px;color:var(--dim);margin-top:8px">Add a sink base, a range / cooktop / wall oven, and a refrigerator to see the work-triangle check.</p>`;
+  h+=`</section><section><h2 class="font-display" style="font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--dim);margin:0">Fit & clearances</h2>`;
+  if(allClear&&a.walkways.length===0) h+=`<p style="display:flex;gap:8px;font-size:14px;margin-top:8px"><span style="color:var(--good)">●</span><span>No collisions and nothing hangs outside the room. Add counters facing each other or an island to get walkway readings.</span></p>`;
+  if(allClear&&a.walkways.length>0) h+=`<p style="display:flex;gap:8px;font-size:14px;margin-top:8px"><span style="color:var(--good)">●</span><span>No collisions — every walkway is at least 42″.</span></p>`;
+  h+=`<div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">`;
+  a.overlaps.forEach(o=>{h+=`<button class="check-card" style="border-color:var(--rust)" data-sel="${o.aId}"><strong style="color:var(--rust)">Overlap:</strong> ${esc(o.aName)} and ${esc(o.bName)} occupy the same floor space. Tap to select and move one.</button>`});
+  a.outOfBounds.forEach(i=>{h+=`<button class="check-card" style="border-color:var(--rust)" data-sel="${i.id}"><strong style="color:var(--rust)">Outside the room:</strong> ${esc(i.name)} sticks past a wall. Tap to select it.</button>`});
+  a.walkways.slice(0,8).forEach(w=>{h+=`<div class="check-card"><strong style="color:${sevColor(w.severity)}">${Math.round(w.gapIn)}″ — ${sevLabel(w.severity)}:</strong> walkway between ${esc(nameOf(w.aId))} and ${esc(nameOf(w.bId))}.${w.severity==='narrow'?' NKBA guidance is 36″ minimum for a one-cook walkway, 42″ for two cooks.':w.severity==='tight'?' Fine for one cook; 42″ is the two-cook comfort line.':''}</div>`});
+  h+=`</div></section></div>`;
+  panel.innerHTML=h;
+  panel.querySelectorAll('[data-sel]').forEach(b=>b.onclick=()=>selectItem(b.dataset.sel));
+}
+function renderShare(){
+  const a=getAnalysis();
+  panel.innerHTML=`<div style="display:flex;flex-direction:column;gap:18px">
+    <div><h2 class="font-display" style="font-size:18px;margin:0">Keep this design</h2><p style="color:var(--dim);line-height:1.55;margin:8px 0 0">When you're signed in (Account tab), this design saves itself to the shared library. Downloading a copy still works too — handy for keeping a file or sending it to someone.</p></div>
+    <div style="background:var(--surface-alt);border-radius:10px;padding:14px"><p class="mono" style="font-size:13px;color:var(--dim);margin:0">${design.items.length} pieces · ${fmtIn(design.room.widthIn)} × ${fmtIn(design.room.depthIn)} room · ${fmtMoney(a.budgetCents)} priced so far</p>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-top:12px"><button class="btn btn-primary" id="dlBtn">⬇ Download design file (.json)</button><button class="btn" id="copySummaryBtn">Copy a text summary</button><button class="btn" id="importBtn">Open a saved design file…</button></div>
+    <p id="shareMsg" style="font-size:13px;color:var(--good);margin:10px 0 0;min-height:18px"></p></div>
+    <div><h3 class="font-display" style="margin:0;font-size:15px">Sending it to Smitty</h3><ol style="color:var(--dim);line-height:1.6;padding-left:20px;margin:8px 0 0"><li>Tap <b style="color:var(--text)">Download design file</b> above.</li><li>Text or email that file to Smitty — he can open it in his full Kitchen Designer and in this page via “Open a saved design file.”</li><li>A screenshot works too for a quick look — pinch to frame the plan, then use your phone’s screenshot.</li></ol></div>
+    <div><h3 class="font-display" style="margin:0;font-size:15px">Start over</h3><p style="color:var(--dim);margin:6px 0 0;line-height:1.5">Want a blank room with the same size and doors/windows?</p><button class="btn" id="blankBtn" style="margin-top:10px;width:100%">${confirmClear?'Tap again to clear all pieces':'Clear all pieces, keep the room'}</button></div>
+  </div>`;
+  const doDownload=()=>{const payload=serializeDesign(); const name=payload.name; const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}); const url=URL.createObjectURL(blob); const aEl=document.createElement('a'); aEl.href=url; aEl.download=name.replace(/[^a-z0-9-_]+/gi,'-').slice(0,60)+'.json'; document.body.appendChild(aEl); aEl.click(); aEl.remove(); setTimeout(()=>URL.revokeObjectURL(url),2000); const m=document.getElementById('shareMsg'); if(m) m.textContent='Downloaded — check your Files / Downloads.'};
+  document.getElementById('dlBtn').onclick=doDownload;
+  document.getElementById('copySummaryBtn').onclick=async()=>{const a2=getAnalysis(); const lines=[document.getElementById('designName').value, `Room: ${fmtIn(design.room.widthIn)} × ${fmtIn(design.room.depthIn)} (${Math.round(a2.areaSqFt)} sq ft)`, `Budget (priced pieces): ${fmtMoney(a2.budgetCents)}`, '', 'Pieces:']; design.items.forEach(i=>lines.push(`- ${i.name} — ${Math.round(itemRect(i).w)}×${Math.round(itemRect(i).d)}″ at ${Math.round(i.xIn)}″, ${Math.round(i.yIn)}″${i.priceCents!=null?' — '+fmtMoney(i.priceCents):''}${i.productUrl?' — '+i.productUrl:''}`)); if(a2.triangle) lines.push('',`Work triangle: ${a2.triangle.totalFt.toFixed(1)} ft total — ${a2.triangle.verdict}`); const txt=lines.join('\n'); try{await navigator.clipboard.writeText(txt); document.getElementById('shareMsg').textContent='Summary copied — paste it into a text or email.'}catch(e){document.getElementById('shareMsg').textContent='Copy blocked by the browser — use Download instead.'}};
+  document.getElementById('importBtn').onclick=()=>document.getElementById('importFile').click();
+  document.getElementById('blankBtn').onclick=()=>{if(confirmClear){design.items=[]; confirmClear=false; selectedItemId=null; renderCanvas(); updateHeader(); renderPanel()} else {confirmClear=true; renderPanel()}};
+  // expose for header button
+  window.__doDownload=doDownload;
+}
+// import
+// ---------- Design import (one path for file import + cloud load) ----------
+function applyImportedDesign(parsed){
+  const data=parsed.data||parsed;
+  if(!data.room||!Array.isArray(data.items)||!Array.isArray(data.openings)) throw new Error('bad');
+  design=data; if(parsed.name) document.getElementById('designName').value=parsed.name; selectedItemId=null; selectedOpeningId=null; fitted=false; fit(); renderCanvas(); updateHeader(); currentTab='checks'; renderTabs(); renderPanel();
+}
+document.getElementById('importFile').addEventListener('change',e=>{
+  const f=e.target.files[0]; if(!f) return; const reader=new FileReader(); reader.onload=()=>{try{applyImportedDesign(JSON.parse(reader.result))}catch(err){ currentTab='share'; renderTabs(); renderPanel(); const m=document.getElementById('shareMsg'); if(m){m.style.color='var(--rust)'; m.textContent='That file could not be opened as a kitchen design.'}}}; reader.readAsText(f); e.target.value='';
+});
+document.getElementById('topDownload').onclick=()=>{ if(window.__doDownload) window.__doDownload(); else {currentTab='share'; renderTabs(); renderPanel(); if(window.__doDownload) window.__doDownload()} };
+document.getElementById('stripShareBtn').onclick=()=>{currentTab='share'; renderTabs(); renderPanel(); panel.scrollTop=0};
+document.getElementById('designName').addEventListener('input',()=>{});
+
+// init
+renderTabs(); renderPanel(); updateHeader();
+// fit after layout settles
+setTimeout(()=>{const r=wrap.getBoundingClientRect(); containerSize={w:r.width,h:r.height}; fitted=true; fit()},50);
+</script>
+<script>
+
+// ---------- Cloud save (Supabase) — shared household library ----------
+const SUPABASE_URL='https://phmkvubxlldxzdpjytqf.supabase.co';
+const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBobWt2dWJ4bGxkeHpkcGp5dHFmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcxNTMxNTMsImV4cCI6MjA5MjcyOTE1M30.gSunjBB4l9nEasU-ek0EssKthFJDdBgO9GUBZMNxnPc';
+let sb=null;
+try{ if(window.supabase&&window.supabase.createClient) sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY); }catch(e){ sb=null; }
+
+let cloudUser=null, currentCloudId=null, currentCloudName=null, cloudRows=[];
+let lastSavedSig=null, lastChangeSig='', lastChangeAt=0, savingNow=false, saveError=false, lastSaveErrAt=0;
+let confirmCloudDelete=null, knownDesignRef=design, cloudLoading=false;
+
+function designSig(){ try{ return JSON.stringify({n:(document.getElementById('designName').value||'').trim(), d:design}); }catch(e){ return ''; } }
+function saveStatusText(){
+  if(!sb) return 'Cloud unavailable';
+  if(!cloudUser) return 'Sign in to save';
+  if(savingNow) return 'Saving…';
+  if(saveError) return 'Save failed — will retry';
+  if(lastSavedSig&&lastSavedSig===designSig()) return 'Saved ✓';
+  if(!currentCloudId) return 'Not saved yet';
+  return 'Unsaved changes';
+}
+function setSaveStatus(){
+  const el=document.getElementById('saveStatus'); if(el) el.textContent=saveStatusText();
+  const line=document.getElementById('cloudSaveLine'); if(line) line.textContent=saveStatusText()+(currentCloudName?' · Editing “'+currentCloudName+'”':'');
+}
+function cloudMsg(t){ const m=document.getElementById('cloudMsg'); if(m) m.textContent=t||''; }
+
+async function cloudSaveNow(){
+  if(!sb||!cloudUser||savingNow) return false;
+  savingNow=true; setSaveStatus();
+  const payload=serializeDesign();
+  const savedSig=JSON.stringify({n:payload.name, d:payload.data});
+  let ok=false;
+  try{
+    if(currentCloudId){
+      const r=await sb.from('kitchen_designs').update({name:payload.name, data:payload, updated_at:new Date().toISOString()}).eq('id',currentCloudId).select('id');
+      if(r.error) throw r.error;
+      if(!r.data||!r.data.length){ currentCloudId=null; throw new Error('That saved design no longer exists — saving a fresh copy.'); }
+    }
+    if(!currentCloudId){
+      const r=await sb.from('kitchen_designs').insert({name:payload.name, data:payload, created_by:cloudUser.id}).select('id,name').single();
+      if(r.error) throw r.error;
+      currentCloudId=r.data.id;
+    }
+    currentCloudName=payload.name; lastSavedSig=savedSig; saveError=false; lastSaveErrAt=0; ok=true;
+    refreshCloudList();
+  }catch(e){
+    saveError=true; lastSaveErrAt=Date.now();
+    if(currentTab==='account') cloudMsg('Save hit a snag ('+(e&&e.message?e.message:'network')+'). Working locally — it will keep retrying.');
+  }
+  savingNow=false; setSaveStatus();
+  return ok;
+}
+
+function cloudLoad(row){
+  cloudLoading=true;
+  try{ applyImportedDesign(row.data); }
+  catch(e){ cloudLoading=false; if(currentTab==='account') cloudMsg('That saved design could not be opened.'); return; }
+  currentCloudId=row.id; currentCloudName=row.name||null; knownDesignRef=design;
+  lastSavedSig=designSig(); lastChangeSig=lastSavedSig; saveError=false;
+  cloudLoading=false; setSaveStatus();
+}
+
+async function cloudDuplicate(row){
+  if(!sb||!cloudUser) return;
+  const r=await sb.from('kitchen_designs').insert({name:((row.name||'Design')+' copy'), data:row.data, created_by:cloudUser.id}).select('id').single();
+  if(r.error){ cloudMsg('Duplicate failed: '+r.error.message); return; }
+  cloudMsg('Duplicated as “'+(row.name||'Design')+' copy”.');
+  refreshCloudList();
+}
+
+async function cloudDelete(row){
+  if(confirmCloudDelete!==row.id){ confirmCloudDelete=row.id; renderCloudList(); return; }
+  confirmCloudDelete=null;
+  const r=await sb.from('kitchen_designs').delete().eq('id',row.id);
+  if(r.error){ cloudMsg('Delete failed: '+r.error.message); renderCloudList(); return; }
+  if(row.id===currentCloudId){ currentCloudId=null; currentCloudName=null; lastSavedSig=designSig(); lastChangeSig=lastSavedSig; setSaveStatus(); }
+  cloudMsg('Deleted “'+(row.name||'Design')+'”.');
+  refreshCloudList();
+}
+
+async function cloudNew(){
+  const nameInput=document.getElementById('cloud-name');
+  const name=((nameInput&&nameInput.value)||'').trim()||'Untitled design';
+  design=emptyDesign();
+  document.getElementById('designName').value=name;
+  selectedItemId=null; selectedOpeningId=null;
+  currentCloudId=null; currentCloudName=null; lastSavedSig=null; saveError=false;
+  knownDesignRef=design; lastChangeSig=''; lastChangeAt=Date.now();
+  fitted=false; fit(); renderCanvas(); updateHeader();
+  await cloudSaveNow();
+  if(currentTab==='account') renderPanel();
+}
+
+async function refreshCloudList(){
+  if(!sb||!cloudUser) return;
+  const r=await sb.from('kitchen_designs').select('id,name,data,created_by,updated_at').order('updated_at',{ascending:false});
+  const listEl=document.getElementById('cloudList');
+  if(r.error){ if(listEl) listEl.innerHTML='<p style="color:var(--rust);font-size:14px">Could not load the library: '+esc(r.error.message)+'</p>'; return; }
+  cloudRows=r.data||[];
+  renderCloudList();
+}
+
+function renderCloudList(){
+  const listEl=document.getElementById('cloudList'); if(!listEl) return;
+  if(!cloudRows.length){ listEl.innerHTML='<p style="color:var(--dim);font-size:14px">No saved designs yet — once a design saves, it shows up here for both of you.</p>'; return; }
+  listEl.innerHTML=cloudRows.map(r=>'<div style="display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--border)">'
+    +'<span style="flex:1;min-width:0"><span style="display:block;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(r.name||'Untitled design')+(r.id===currentCloudId?' <span style="color:var(--good);font-size:12px">● open</span>':'')+'</span>'
+    +'<span class="mono" style="font-size:12px;color:var(--dim)">'+esc(new Date(r.updated_at).toLocaleString())+'</span></span>'
+    +'<button class="btn" style="padding:7px 10px;font-size:13px" data-cloud-load="'+r.id+'">Load</button>'
+    +'<button class="btn" style="padding:7px 10px;font-size:13px" data-cloud-dup="'+r.id+'">Duplicate</button>'
+    +'<button class="btn '+(confirmCloudDelete===r.id?'btn-rust':'')+'" style="padding:7px 10px;font-size:13px" data-cloud-del="'+r.id+'">'+(confirmCloudDelete===r.id?'Tap again to delete':'Delete')+'</button>'
+    +'</div>').join('');
+  listEl.querySelectorAll('[data-cloud-load]').forEach(b=>b.onclick=()=>{ const r=cloudRows.find(x=>x.id===b.dataset.cloudLoad); if(r) cloudLoad(r); });
+  listEl.querySelectorAll('[data-cloud-dup]').forEach(b=>b.onclick=()=>{ const r=cloudRows.find(x=>x.id===b.dataset.cloudDup); if(r) cloudDuplicate(r); });
+  listEl.querySelectorAll('[data-cloud-del]').forEach(b=>b.onclick=()=>{ const r=cloudRows.find(x=>x.id===b.dataset.cloudDel); if(r) cloudDelete(r); });
+}
+
+// ---------- Account panel ----------
+function renderAccount(){
+  let h='<div style="display:flex;flex-direction:column;gap:18px">';
+  h+='<div><h2 class="font-display" style="font-size:18px;margin:0">Account & cloud designs</h2><p style="color:var(--dim);line-height:1.55;margin:8px 0 0">Sign in to save designs to the shared library — Smitty and Christine both see every saved design, and changes save themselves. The planner works without signing in; it just won\'t save.</p></div>';
+  if(!sb){
+    h+='<p style="color:var(--rust);line-height:1.5">Cloud is unreachable right now — the planner still works locally. Use “Download design file” in Keep &amp; Share to keep a copy.</p>';
+  } else if(!cloudUser){
+    h+='<div style="display:flex;flex-direction:column;gap:12px">'
+      +'<label class="field"><span>Email</span><input id="auth-email" type="email" autocomplete="email" placeholder="you@example.com"></label>'
+      +'<label class="field"><span>Password</span><input id="auth-pass" type="password" autocomplete="current-password" placeholder="Password"></label>'
+      +'<div style="display:flex;gap:8px"><button class="btn btn-primary" id="auth-signin" style="flex:1">Sign in</button><button class="btn" id="auth-signup" style="flex:1">Create account</button></div>'
+      +'<p id="auth-msg" style="font-size:13px;color:var(--dim);margin:0;min-height:18px"></p></div>';
+  } else {
+    h+='<div style="background:var(--surface-alt);border-radius:10px;padding:14px">'
+      +'<p style="margin:0;font-size:14px">Signed in as <b>'+esc(cloudUser.email||'')+'</b></p>'
+      +'<p id="cloudSaveLine" style="font-size:13px;color:var(--dim);margin:6px 0 0"></p>'
+      +'<div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap"><button class="btn btn-primary" id="cloud-save-now">Save now</button><button class="btn" id="cloud-new">New design</button><button class="btn" id="auth-signout">Sign out</button></div>'
+      +'<div style="display:flex;gap:8px;margin-top:12px"><input id="cloud-name" placeholder="Design name" value="'+esc(currentCloudName||document.getElementById('designName').value||'')+'" style="flex:1;min-width:0;border:1px solid var(--border);background:var(--bg);border-radius:7px;padding:9px 10px;font-size:16px"><button class="btn" id="cloud-rename">Rename</button></div>'
+      +'<p id="cloudMsg" style="font-size:13px;color:var(--dim);margin:10px 0 0;min-height:18px"></p></div>'
+      +'<div><div style="display:flex;align-items:center;justify-content:space-between"><h3 class="font-display" style="margin:0;font-size:15px">Cloud designs</h3><button class="btn" id="cloud-refresh" style="padding:6px 10px;font-size:13px">Refresh</button></div>'
+      +'<div id="cloudList"><p style="color:var(--dim);font-size:14px">Loading…</p></div></div>';
+  }
+  h+='</div>';
+  panel.innerHTML=h;
+  if(sb&&!cloudUser){
+    const doAuth=async(mode)=>{
+      const email=(document.getElementById('auth-email').value||'').trim();
+      const pass=document.getElementById('auth-pass').value||'';
+      const msg=document.getElementById('auth-msg');
+      if(!email||!pass){ msg.textContent='Enter an email and a password.'; return; }
+      msg.textContent=mode==='in'?'Signing in…':'Creating account…';
+      const res=mode==='in' ? await sb.auth.signInWithPassword({email:email,password:pass}) : await sb.auth.signUp({email:email,password:pass});
+      if(res.error){ msg.textContent=res.error.message; return; }
+      if(mode==='up'&&!(res.data&&res.data.session)){ msg.textContent='Account created — if email confirmation is switched on, confirm from your inbox, then sign in.'; }
+    };
+    document.getElementById('auth-signin').onclick=()=>doAuth('in');
+    document.getElementById('auth-signup').onclick=()=>doAuth('up');
+  }
+  if(sb&&cloudUser){
+    setSaveStatus();
+    document.getElementById('auth-signout').onclick=async()=>{ try{ await sb.auth.signOut(); }catch(e){} };
+    document.getElementById('cloud-save-now').onclick=async()=>{ const ok=await cloudSaveNow(); cloudMsg(ok?'Saved just now.':'Could not save — check your connection.'); };
+    document.getElementById('cloud-new').onclick=()=>cloudNew();
+    document.getElementById('cloud-refresh').onclick=()=>refreshCloudList();
+    document.getElementById('cloud-rename').onclick=async()=>{
+      const v=(document.getElementById('cloud-name').value||'').trim();
+      if(!v){ cloudMsg('Type a name first.'); return; }
+      document.getElementById('designName').value=v;
+      if(currentCloudId){
+        const r=await sb.from('kitchen_designs').update({name:v, updated_at:new Date().toISOString()}).eq('id',currentCloudId);
+        if(r.error){ cloudMsg('Rename failed: '+r.error.message); return; }
+        currentCloudName=v; lastSavedSig=designSig(); setSaveStatus(); refreshCloudList();
+      }
+      cloudMsg('Renamed to “'+v+'”.');
+    };
+    refreshCloudList();
+  }
+}
+
+// ---------- Auth wiring + autosave ----------
+if(sb){
+  sb.auth.onAuthStateChange((evt,session)=>{
+    cloudUser=session?session.user:null;
+    if(cloudUser){ lastChangeSig=designSig(); lastChangeAt=Date.now(); }
+    else { currentCloudId=null; currentCloudName=null; cloudRows=[]; }
+    setSaveStatus();
+    if(currentTab==='account') renderPanel();
+  });
+  sb.auth.getSession().then(({data})=>{
+    cloudUser=data&&data.session?data.session.user:null;
+    setSaveStatus();
+    if(currentTab==='account') renderPanel();
+  }).catch(()=>{});
+}
+setSaveStatus();
+setInterval(()=>{
+  // A replaced design object (file import / new design) that didn't come from the
+  // cloud is a different design — detach it so autosave files it as a new row.
+  if(design!==knownDesignRef){ knownDesignRef=design; if(!cloudLoading){ currentCloudId=null; currentCloudName=null; } }
+  const sig=designSig();
+  if(sig!==lastChangeSig){ lastChangeSig=sig; lastChangeAt=Date.now(); }
+  if(cloudUser&&!savingNow&&sig!==lastSavedSig&&(Date.now()-lastChangeAt)>=1500&&(Date.now()-lastSaveErrAt)>=4000){ cloudSaveNow(); }
+  setSaveStatus();
+},600);
+</script>
+</body>
+</html>
