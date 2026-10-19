@@ -142,9 +142,56 @@ function itemRect(it){const s=effSize(it);return{x:it.xIn,y:it.yIn,w:s.w,d:s.d}}
 function rectsOverlap(a,b,shrink){shrink=shrink==null?0.06:shrink;return a.x+shrink<b.x+b.w-shrink&&b.x+shrink<a.x+a.w-shrink&&a.y+shrink<b.y+b.d-shrink&&b.y+shrink<a.y+a.d-shrink}
 function centerOf(r){return{x:r.x+r.w/2,y:r.y+r.d/2}}
 function fmtIn(ins){const r=Math.round(ins*10)/10;const ft=Math.floor(r/12);const rem=Math.round((r-ft*12)*10)/10;if(ft===0)return rem+'″';if(rem===0)return ft+'′';return ft+'′ '+rem+'″'}
-function fmtMoney(c){return (c/100).toLocaleString('en-US',{style:'currency',currency:'USD',maximumFractionDigits:c%100===0?0:2})}
+function fmtMoney(c){return (c/100).toLocaleString('en-US',{style:'currency',currency:'USD',minimumFractionDigits:2,maximumFractionDigits:2})}
 function openingPoint(op,room){const mid=op.offsetIn+op.widthIn/2;switch(op.wall){case'north':return{x:mid,y:0,nx:0,ny:-1,horizontal:true};case'south':return{x:mid,y:room.depthIn,nx:0,ny:1,horizontal:true};case'west':return{x:0,y:mid,nx:-1,ny:0,horizontal:false};case'east':return{x:room.widthIn,y:mid,nx:1,ny:0,horizontal:false}}}
 function distFt(a,b){return Math.hypot(a.x-b.x,a.y-b.y)/12}
+// ---------- Budget ----------
+// Money is stored as integer cents, matching item.priceCents.
+// design.budget = { target: <cents, 0 = unset>, custom: [ {id, name, qty, unitCost: <cents>, note} ] }
+function ensureBudget(d){
+  if(!d||typeof d!=='object') return {target:0,custom:[]};
+  const b=(d.budget&&typeof d.budget==='object')?d.budget:{};
+  let target=Number(b.target); if(!isFinite(target)||target<0) target=0; target=Math.round(target);
+  const rows=Array.isArray(b.custom)?b.custom:[];
+  const custom=rows.filter(r=>r&&typeof r==='object').map(r=>{
+    let qty=Number(r.qty); if(!isFinite(qty)||qty<0) qty=0;
+    let unitCost=Number(r.unitCost); if(!isFinite(unitCost)||unitCost<0) unitCost=0;
+    return {id:(r.id!=null&&r.id!=='')?String(r.id):uid(), name:String(r.name==null?'':r.name), qty, unitCost:Math.round(unitCost), note:String(r.note==null?'':r.note)};
+  });
+  d.budget={target,custom};
+  return d.budget;
+}
+// Single source of truth for every budget figure in the app (Budget tab, header pill, Checks).
+// All money fields are cents. remaining/pctUsed are null when no target is set.
+function computeBudget(d){
+  const items=(d&&Array.isArray(d.items))?d.items:[];
+  const b=(d&&d.budget&&typeof d.budget==='object')?d.budget:{};
+  const targetRaw=Number(b.target); const target=isFinite(targetRaw)&&targetRaw>0?Math.round(targetRaw):0;
+  const groups=new Map(); let pricedCount=0;
+  for(const it of items){
+    if(it&&it.priceCents!=null&&isFinite(Number(it.priceCents))){
+      pricedCount++;
+      const unit=Math.round(Number(it.priceCents));
+      const key=String(it.name||'Piece')+'|'+unit;
+      if(!groups.has(key)) groups.set(key,{name:String(it.name||'Piece'),unitCents:unit,qty:0,totalCents:0});
+      const g=groups.get(key); g.qty++; g.totalCents+=unit;
+    }
+  }
+  const productLines=[...groups.values()];
+  const productsTotal=productLines.reduce((s,g)=>s+g.totalCents,0);
+  const unpricedCount=items.length-pricedCount;
+  const customRows=Array.isArray(b.custom)?b.custom:[];
+  const customLines=customRows.filter(r=>r&&typeof r==='object').map(r=>{
+    let qty=Number(r.qty); if(!isFinite(qty)||qty<0) qty=0;
+    let unitCost=Number(r.unitCost); if(!isFinite(unitCost)||unitCost<0) unitCost=0; unitCost=Math.round(unitCost);
+    return {id:r.id, name:String(r.name==null?'':r.name), qty, unitCost, note:String(r.note==null?'':r.note), totalCents:Math.round(qty*unitCost)};
+  });
+  const customTotal=customLines.reduce((s,r)=>s+r.totalCents,0);
+  const total=productsTotal+customTotal;
+  const remaining=target>0?target-total:null;
+  const pctUsed=target>0?(total/target*100):null;
+  return {productLines, productsTotal, pricedCount, unpricedCount, customLines, customTotal, total, target, remaining, pctUsed};
+}
 function analyze(data){
   const room=data.room, items=data.items; const overlaps=[],outOfBounds=[],walkways=[];
   for(const it of items){const r=itemRect(it); if(r.x<-0.05||r.y<-0.05||r.x+r.w>room.widthIn+0.05||r.y+r.d>room.depthIn+0.05) outOfBounds.push(it)}
@@ -161,11 +208,11 @@ function analyze(data){
   walkways.sort((p,q)=>p.gapIn-q.gapIn);
   const sink=items.find(i=>i.role==='sink'), cook=items.find(i=>i.role==='cooking'), fridge=items.find(i=>i.role==='fridge'); let triangle=null;
   if(sink&&cook&&fridge){const cs=centerOf(itemRect(sink)),cc=centerOf(itemRect(cook)),cf=centerOf(itemRect(fridge)); const sc=distFt(cs,cc),cf2=distFt(cc,cf),fs=distFt(cf,cs); const total=sc+cf2+fs; const legs=[sc,cf2,fs]; const ok=total>=13&&total<=26&&legs.every(l=>l>=4&&l<=9); triangle={legsFt:{sinkCook:sc,cookFridge:cf2,fridgeSink:fs},totalFt:total,ok,verdict: ok?"Inside the classic 13–26 ft work-triangle range, every leg 4–9 ft.": total<13?"Tighter than the classic 13 ft minimum — workable, but expect crowding with two cooks.": total>26?"Over the classic 26 ft maximum — lots of steps between sink, stove, and fridge.":"Total is in range, but one leg falls outside 4–9 ft."}}
-  let budget=0,priced=0; for(const it of items) if(it.priceCents!=null){budget+=it.priceCents;priced++}
-  return{overlaps,outOfBounds,walkways,triangle,budgetCents:budget,pricedCount:priced,unpricedCount:items.length-priced,areaSqFt:(room.widthIn*room.depthIn)/144}
+  const b=computeBudget(data);
+  return{overlaps,outOfBounds,walkways,triangle,budgetCents:b.total,pricedCount:b.pricedCount,unpricedCount:b.unpricedCount,areaSqFt:(room.widthIn*room.depthIn)/144}
 }
 function itemFromCatalog(e,x,y){return{id:uid(),catalogId:e.id,name:e.name,category:e.category,layer:e.layer,role:e.role,xIn:x,yIn:y,wIn:e.wIn,dIn:e.dIn,hIn:e.hIn,rotation:0,color:e.color,priceCents:null,productUrl:null,notes:null}}
-function emptyDesign(){return{room:{widthIn:168,depthIn:144,wallHeightIn:96},openings:[{id:uid(),wall:"north",offsetIn:54,widthIn:60,kind:"window"},{id:uid(),wall:"south",offsetIn:120,widthIn:36,kind:"door"}],items:[]}}
+function emptyDesign(){return{room:{widthIn:168,depthIn:144,wallHeightIn:96},openings:[{id:uid(),wall:"north",offsetIn:54,widthIn:60,kind:"window"},{id:uid(),wall:"south",offsetIn:120,widthIn:36,kind:"door"}],items:[],budget:{target:0,custom:[]}}}
 function findSpot(data,w,d,layer){const W=data.room.widthIn,D=data.room.depthIn,others=data.items.filter(i=>i.layer===layer); for(let y=0;y+d<=D;y+=6) for(let x=0;x+w<=W;x+=6){const r={x,y,w,d}; if(!others.some(o=>rectsOverlap(r,itemRect(o),0))) return{x,y}} return{x:Math.max(0,Math.round((W-w)/2)),y:Math.max(0,Math.round((D-d)/2))}}
 function runTemplate(items,data,entryId,x,y,rot){rot=rot||0; const e=CATALOG.find(c=>c.id===entryId); if(!e)return; const it=itemFromCatalog(e,x,y); it.rotation=rot; items.push(it)}
 function layoutTemplate(kind,data){const W=data.room.widthIn,D=data.room.depthIn,items=[]; runTemplate(items,data,"fridge-36",0,0); runTemplate(items,data,"base-24",36,0); runTemplate(items,data,"sink-33",60,0); runTemplate(items,data,"dishwasher-24",93,0); runTemplate(items,data,"base-24",117,0); runTemplate(items,data,"wall-30",60,0); runTemplate(items,data,"wall-30",117,0);
@@ -193,7 +240,7 @@ function getAnalysis(){return analyze(design)}
 function issueCount(){const a=getAnalysis(); return a.overlaps.length+a.outOfBounds.length+a.walkways.filter(w=>w.severity!=="ok").length}
 
 // ---------- Tabs ----------
-const TABS=[{id:"add",label:"Add"},{id:"edit",label:"Edit"},{id:"room",label:"Room"},{id:"checks",label:"Checks"},{id:"account",label:"Account"},{id:"share",label:"Keep & Share"}];
+const TABS=[{id:"add",label:"Add"},{id:"edit",label:"Edit"},{id:"room",label:"Room"},{id:"checks",label:"Checks"},{id:"budget",label:"Budget"},{id:"account",label:"Account"},{id:"share",label:"Keep & Share"}];
 function renderTabs(){
   const ic=issueCount();
   tabsNav.innerHTML=TABS.map(t=>`<button data-tab="${t.id}" class="${currentTab===t.id?'active':''}">${t.label}${t.id==='checks'&&ic?`<span class="badge">${ic}</span>`:''}</button>`).join('');
@@ -329,6 +376,7 @@ function renderPanel(){
   else if(currentTab==='edit') renderEdit();
   else if(currentTab==='room') renderRoom();
   else if(currentTab==='checks') renderChecks();
+  else if(currentTab==='budget') renderBudget();
   else if(currentTab==='share') renderShare();
   else if(currentTab==='account') renderAccount();
 }
@@ -472,7 +520,7 @@ function renderChecks(){
   const sevColor=s=>s==='narrow'?'var(--rust)':s==='tight'?'var(--oak)':'var(--good)'; const sevLabel=s=>s==='narrow'?'Too narrow':s==='tight'?'Tight':'Comfortable';
   const allClear=a.overlaps.length===0&&a.outOfBounds.length===0&&a.walkways.every(w=>w.severity==='ok');
   let h=`<div style="display:flex;flex-direction:column;gap:22px">
-  <section style="background:var(--surface-alt);border-radius:10px;padding:14px 16px"><p class="label" style="margin:0">Budget from priced pieces</p><p class="font-display" style="font-size:30px;font-weight:800;margin:4px 0 0">${fmtMoney(a.budgetCents)}</p><p class="mono" style="font-size:13px;color:var(--dim);margin:4px 0 0">${a.pricedCount} priced · ${a.unpricedCount} without a price · room ${Math.round(a.areaSqFt)} sq ft</p></section>
+  <section style="background:var(--surface-alt);border-radius:10px;padding:14px 16px"><p class="label" style="margin:0">Budget so far</p><p class="font-display" style="font-size:30px;font-weight:800;margin:4px 0 0">${fmtMoney(a.budgetCents)}</p><p class="mono" style="font-size:13px;color:var(--dim);margin:4px 0 0">${a.pricedCount} priced · ${a.unpricedCount} without a price · room ${Math.round(a.areaSqFt)} sq ft</p></section>
   <section><h2 class="font-display" style="font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--dim);margin:0">Work triangle</h2>`;
   if(a.triangle) h+=`<p class="mono" style="margin-top:8px">Sink→stove ${a.triangle.legsFt.sinkCook.toFixed(1)}′ · Stove→fridge ${a.triangle.legsFt.cookFridge.toFixed(1)}′ · Fridge→sink ${a.triangle.legsFt.fridgeSink.toFixed(1)}′ · Total ${a.triangle.totalFt.toFixed(1)}′</p><p style="display:flex;gap:8px;font-size:14px"><span style="color:${a.triangle.ok?'var(--good)':'var(--oak)'}">${a.triangle.ok?'●':'▲'}</span><span>${a.triangle.verdict}</span></p>`;
   else h+=`<p style="font-size:14px;color:var(--dim);margin-top:8px">Add a sink base, a range / cooktop / wall oven, and a refrigerator to see the work-triangle check.</p>`;
@@ -487,11 +535,67 @@ function renderChecks(){
   panel.innerHTML=h;
   panel.querySelectorAll('[data-sel]').forEach(b=>b.onclick=()=>selectItem(b.dataset.sel));
 }
+let confirmBudgetDelete=null;
+function renderBudget(){
+  ensureBudget(design);
+  const b=computeBudget(design);
+  const dollars=c=>c?String(c/100):'';
+  const sumRow=(label,val,bold,top)=>`<div style="display:flex;justify-content:space-between;align-items:baseline;padding:5px 0;${top?'border-top:1px solid var(--border);margin-top:6px;padding-top:10px':''}"><span style="${bold?'font-weight:700':''}">${label}</span><span class="mono" style="font-weight:${bold?'800':'600'}">${val}</span></div>`;
+  let h=`<div style="display:flex;flex-direction:column;gap:22px">`;
+  h+=`<div><h2 class="font-display" style="font-size:18px;margin:0">Budget</h2><p style="color:var(--dim);line-height:1.55;margin:8px 0 0">Everything this kitchen will cost: the priced pieces on the plan, plus your own line items for the rest — flooring, countertops, labor, permits. It all saves with the design.</p></div>`;
+  // Target
+  h+=`<section><h2 class="font-display" style="font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--dim);margin:0">Budget target</h2>
+  <label class="field" style="margin-top:12px"><span>Total budget ($)</span><input id="bud-target" type="number" inputmode="decimal" min="0" placeholder="e.g. 45000" value="${dollars(b.target)}"></label>
+  ${b.target>0?'':`<p style="font-size:13px;color:var(--dim);margin:6px 0 0">No target set yet — add one to track how much room is left.</p>`}</section>`;
+  // Products from the plan
+  h+=`<section><h2 class="font-display" style="font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--dim);margin:0">Products on the plan</h2>`;
+  if(!b.productLines.length){
+    h+=`<p style="font-size:14px;color:var(--dim);margin-top:8px;line-height:1.5">Nothing priced yet. Tap any piece on the plan and give it a price in the Edit tab — it shows up here automatically, grouped by product.</p>`;
+  }else{
+    h+=`<div style="margin-top:4px">${b.productLines.map(l=>`<div style="display:flex;gap:8px;align-items:baseline;padding:9px 0;border-bottom:1px solid var(--border)"><span style="flex:1;min-width:0;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(l.name)}${l.qty>1?` <span class="mono" style="font-size:12px;color:var(--dim)">× ${l.qty}</span>`:''}</span><span class="mono" style="font-size:13px;color:var(--dim);white-space:nowrap">${fmtMoney(l.unitCents)}${l.qty>1?' ea':''}</span><span class="mono" style="font-weight:700;white-space:nowrap">${fmtMoney(l.totalCents)}</span></div>`).join('')}</div>`;
+  }
+  if(b.unpricedCount>0) h+=`<p style="font-size:13px;color:var(--oak);margin:8px 0 0">${b.unpricedCount} piece${b.unpricedCount===1?' has':'s have'} no price yet — total may be incomplete.</p>`;
+  h+=`</section>`;
+  // Custom line items
+  h+=`<section><h2 class="font-display" style="font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--dim);margin:0">Custom line items</h2><p style="font-size:14px;color:var(--dim);margin:6px 0 0;line-height:1.5">Anything that isn't a piece on the plan. Tip: for flooring or counters, put the square feet as Qty and the per-sq-ft price as Unit cost.</p>`;
+  if(!b.customLines.length) h+=`<p style="font-size:14px;color:var(--dim);margin-top:10px">No custom items yet — add the first one below.</p>`;
+  h+=`<div style="display:flex;flex-direction:column;gap:12px;margin-top:12px">${b.customLines.map(r=>`
+    <div style="border:1px solid var(--border);border-radius:10px;padding:12px">
+      <div style="display:flex;gap:8px;align-items:flex-end"><label class="field" style="flex:1;min-width:0"><span>Item</span><input data-bname="${r.id}" value="${esc(r.name)}" placeholder="e.g. Quartz countertops"></label><button class="btn ${confirmBudgetDelete===r.id?'btn-rust':''}" data-bdel="${r.id}" style="white-space:nowrap">${confirmBudgetDelete===r.id?'Tap again to delete':'Delete'}</button></div>
+      <div class="grid3" style="margin-top:10px"><label class="field"><span>Qty</span><input data-bqty="${r.id}" type="number" inputmode="decimal" min="0" value="${r.qty}"></label><label class="field"><span>Unit cost ($)</span><input data-bunit="${r.id}" type="number" inputmode="decimal" min="0" placeholder="0" value="${dollars(r.unitCost)}"></label><div><span class="label">Line total</span><p class="mono" style="font-size:16px;font-weight:700;margin:7px 0 0">${fmtMoney(r.totalCents)}</p></div></div>
+      <label class="field" style="margin-top:10px"><span>Note (optional)</span><input data-bnote="${r.id}" value="${esc(r.note)}" placeholder="Store, quote, who’s doing it…"></label>
+    </div>`).join('')}</div>
+  <button class="btn btn-primary" id="bud-add" style="width:100%;margin-top:14px">+ Add a line item</button></section>`;
+  // Summary
+  h+=`<section style="background:var(--surface-alt);border-radius:10px;padding:14px 16px">`
+    +sumRow('Products on the plan',fmtMoney(b.productsTotal),false,false)
+    +sumRow('Custom line items',fmtMoney(b.customTotal),false,false)
+    +sumRow('Total committed',fmtMoney(b.total),true,true);
+  if(b.target>0){
+    h+=sumRow('Budget target',fmtMoney(b.target),false,false)
+      +`<div style="display:flex;justify-content:space-between;align-items:baseline;padding:5px 0"><span style="font-weight:700">Remaining</span><span class="mono" style="font-weight:800;color:${b.remaining<0?'var(--rust)':'var(--good)'}">${fmtMoney(b.remaining)}</span></div>`
+      +`<div style="margin-top:10px"><div style="height:10px;border-radius:5px;background:var(--bg);overflow:hidden"><div style="height:100%;width:${Math.min(100,Math.max(0,b.pctUsed))}%;background:${b.pctUsed>100?'var(--rust)':'var(--good)'};border-radius:5px"></div></div><p class="mono" style="font-size:12px;color:var(--dim);margin:6px 0 0">${b.pctUsed.toFixed(0)}% of budget used</p></div>`;
+  }else{
+    h+=`<p style="font-size:13px;color:var(--dim);margin:8px 0 0">Set a budget target above to see what’s left.</p>`;
+  }
+  h+=`</section></div>`;
+  panel.innerHTML=h;
+  const findRow=id=>design.budget.custom.find(x=>x.id===id);
+  const t=document.getElementById('bud-target');
+  if(t) t.onchange=()=>{ const v=parseFloat(t.value); design.budget.target=(t.value.trim()===''||!isFinite(v))?0:Math.max(0,Math.round(v*100)); updateHeader(); renderPanel(); };
+  const add=document.getElementById('bud-add');
+  if(add) add.onclick=()=>{ const row={id:uid(),name:'',qty:1,unitCost:0,note:''}; design.budget.custom.push(row); updateHeader(); renderPanel(); const el=panel.querySelector(`[data-bname="${row.id}"]`); if(el) el.focus(); };
+  panel.querySelectorAll('[data-bname]').forEach(inp=>inp.onchange=()=>{ const r=findRow(inp.dataset.bname); if(r) r.name=inp.value; });
+  panel.querySelectorAll('[data-bnote]').forEach(inp=>inp.onchange=()=>{ const r=findRow(inp.dataset.bnote); if(r) r.note=inp.value; });
+  panel.querySelectorAll('[data-bqty]').forEach(inp=>inp.onchange=()=>{ const r=findRow(inp.dataset.bqty); if(!r) return; const v=parseFloat(inp.value); r.qty=isFinite(v)?Math.max(0,v):0; updateHeader(); renderPanel(); });
+  panel.querySelectorAll('[data-bunit]').forEach(inp=>inp.onchange=()=>{ const r=findRow(inp.dataset.bunit); if(!r) return; const v=parseFloat(inp.value); r.unitCost=(inp.value.trim()===''||!isFinite(v))?0:Math.max(0,Math.round(v*100)); updateHeader(); renderPanel(); });
+  panel.querySelectorAll('[data-bdel]').forEach(btn=>btn.onclick=()=>{ const id=btn.dataset.bdel; if(confirmBudgetDelete!==id){ confirmBudgetDelete=id; renderPanel(); return; } confirmBudgetDelete=null; design.budget.custom=design.budget.custom.filter(x=>x.id!==id); updateHeader(); renderPanel(); });
+}
 function renderShare(){
   const a=getAnalysis();
   panel.innerHTML=`<div style="display:flex;flex-direction:column;gap:18px">
     <div><h2 class="font-display" style="font-size:18px;margin:0">Keep this design</h2><p style="color:var(--dim);line-height:1.55;margin:8px 0 0">This design saves itself on this device as you work, and — when you're signed in (Account tab) — to the shared library too. Downloading a copy still works — handy for keeping a file or sending it to someone.</p></div>
-    <div style="background:var(--surface-alt);border-radius:10px;padding:14px"><p class="mono" style="font-size:13px;color:var(--dim);margin:0">${design.items.length} pieces · ${fmtIn(design.room.widthIn)} × ${fmtIn(design.room.depthIn)} room · ${fmtMoney(a.budgetCents)} priced so far</p>
+    <div style="background:var(--surface-alt);border-radius:10px;padding:14px"><p class="mono" style="font-size:13px;color:var(--dim);margin:0">${design.items.length} pieces · ${fmtIn(design.room.widthIn)} × ${fmtIn(design.room.depthIn)} room · ${fmtMoney(a.budgetCents)} committed so far</p>
     <div style="display:flex;flex-direction:column;gap:8px;margin-top:12px"><button class="btn btn-primary" id="dlBtn">⬇ Download design file (.json)</button><button class="btn" id="copySummaryBtn">Copy a text summary</button><button class="btn" id="importBtn">Open a saved design file…</button></div>
     <p id="shareMsg" style="font-size:13px;color:var(--good);margin:10px 0 0;min-height:18px"></p></div>
     <div><h3 class="font-display" style="margin:0;font-size:15px">Sending it to Smitty</h3><ol style="color:var(--dim);line-height:1.6;padding-left:20px;margin:8px 0 0"><li>Tap <b style="color:var(--text)">Download design file</b> above.</li><li>Text or email that file to Smitty — he can open it in his full Kitchen Designer and in this page via “Open a saved design file.”</li><li>A screenshot works too for a quick look — pinch to frame the plan, then use your phone’s screenshot.</li></ol></div>
@@ -499,7 +603,7 @@ function renderShare(){
   </div>`;
   const doDownload=()=>{const payload=serializeDesign(); const name=payload.name; const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}); const url=URL.createObjectURL(blob); const aEl=document.createElement('a'); aEl.href=url; aEl.download=name.replace(/[^a-z0-9-_]+/gi,'-').slice(0,60)+'.json'; document.body.appendChild(aEl); aEl.click(); aEl.remove(); setTimeout(()=>URL.revokeObjectURL(url),2000); const m=document.getElementById('shareMsg'); if(m) m.textContent='Downloaded — check your Files / Downloads.'};
   document.getElementById('dlBtn').onclick=doDownload;
-  document.getElementById('copySummaryBtn').onclick=async()=>{const a2=getAnalysis(); const lines=[document.getElementById('designName').value, `Room: ${fmtIn(design.room.widthIn)} × ${fmtIn(design.room.depthIn)} (${Math.round(a2.areaSqFt)} sq ft)`, `Budget (priced pieces): ${fmtMoney(a2.budgetCents)}`, '', 'Pieces:']; design.items.forEach(i=>lines.push(`- ${i.name} — ${Math.round(itemRect(i).w)}×${Math.round(itemRect(i).d)}″ at ${Math.round(i.xIn)}″, ${Math.round(i.yIn)}″${i.priceCents!=null?' — '+fmtMoney(i.priceCents):''}${i.productUrl?' — '+i.productUrl:''}`)); if(a2.triangle) lines.push('',`Work triangle: ${a2.triangle.totalFt.toFixed(1)} ft total — ${a2.triangle.verdict}`); const txt=lines.join('\n'); try{await navigator.clipboard.writeText(txt); document.getElementById('shareMsg').textContent='Summary copied — paste it into a text or email.'}catch(e){document.getElementById('shareMsg').textContent='Copy blocked by the browser — use Download instead.'}};
+  document.getElementById('copySummaryBtn').onclick=async()=>{const a2=getAnalysis(); const lines=[document.getElementById('designName').value, `Room: ${fmtIn(design.room.widthIn)} × ${fmtIn(design.room.depthIn)} (${Math.round(a2.areaSqFt)} sq ft)`, `Budget (products + custom items): ${fmtMoney(a2.budgetCents)}`, '', 'Pieces:']; design.items.forEach(i=>lines.push(`- ${i.name} — ${Math.round(itemRect(i).w)}×${Math.round(itemRect(i).d)}″ at ${Math.round(i.xIn)}″, ${Math.round(i.yIn)}″${i.priceCents!=null?' — '+fmtMoney(i.priceCents):''}${i.productUrl?' — '+i.productUrl:''}`)); computeBudget(design).customLines.forEach(r=>lines.push(`- ${r.name||'Custom item'} × ${r.qty} — ${fmtMoney(r.totalCents)}`)); if(a2.triangle) lines.push('',`Work triangle: ${a2.triangle.totalFt.toFixed(1)} ft total — ${a2.triangle.verdict}`); const txt=lines.join('\n'); try{await navigator.clipboard.writeText(txt); document.getElementById('shareMsg').textContent='Summary copied — paste it into a text or email.'}catch(e){document.getElementById('shareMsg').textContent='Copy blocked by the browser — use Download instead.'}};
   document.getElementById('importBtn').onclick=()=>document.getElementById('importFile').click();
   document.getElementById('blankBtn').onclick=()=>{if(confirmClear){design.items=[]; confirmClear=false; selectedItemId=null; renderCanvas(); updateHeader(); renderPanel()} else {confirmClear=true; renderPanel()}};
   // expose for header button
@@ -510,7 +614,7 @@ function renderShare(){
 function applyImportedDesign(parsed){
   const data=parsed.data||parsed;
   if(!data.room||!Array.isArray(data.items)||!Array.isArray(data.openings)) throw new Error('bad');
-  design=data; if(parsed.name) document.getElementById('designName').value=parsed.name; selectedItemId=null; selectedOpeningId=null; fitted=false; fit(); renderCanvas(); updateHeader(); currentTab='checks'; renderTabs(); renderPanel();
+  design=data; ensureBudget(design); if(parsed.name) document.getElementById('designName').value=parsed.name; selectedItemId=null; selectedOpeningId=null; fitted=false; fit(); renderCanvas(); updateHeader(); currentTab='checks'; renderTabs(); renderPanel();
 }
 document.getElementById('importFile').addEventListener('change',e=>{
   const f=e.target.files[0]; if(!f) return; const reader=new FileReader(); reader.onload=()=>{try{applyImportedDesign(JSON.parse(reader.result))}catch(err){ currentTab='share'; renderTabs(); renderPanel(); const m=document.getElementById('shareMsg'); if(m){m.style.color='var(--rust)'; m.textContent='That file could not be opened as a kitchen design.'}}}; reader.readAsText(f); e.target.value='';
