@@ -74,10 +74,18 @@ label.field span, .label{font-size:11px;font-weight:700;letter-spacing:.06em;tex
     <span class="logo font-display" aria-hidden="true">⌂</span>
     <input id="designName" value="Our kitchen — sketch" aria-label="Design name">
     <span id="projectTag" class="pill">Kitchen</span>
+    <select id="projSelect" aria-label="Switch project" style="border:1px solid var(--border);background:var(--surface-alt);color:var(--text);border-radius:999px;padding:6px 10px;font-size:13px;font-weight:600;max-width:200px"></select>
+    <button id="projNewBtn" class="btn" style="padding:7px 10px;font-size:13px;white-space:nowrap">+ New project</button>
     <span id="budgetPill" class="pill">$0 · 0 pcs</span>
     <span id="saveStatus">Sign in for cloud save</span>
     <button id="topDownload" class="btn btn-primary" style="padding:7px 12px;font-size:13px">Download copy</button>
   </header>
+  <div id="projCreateBar" style="display:none;padding:10px 14px;background:var(--surface);border-bottom:1px solid var(--border);gap:8px;flex-wrap:wrap;align-items:center">
+    <input id="npName" placeholder="New project name" style="flex:1;min-width:150px;border:1px solid var(--border);background:var(--bg);color:var(--text);border-radius:7px;padding:9px 10px;font-size:15px">
+    <select id="npType" aria-label="Room type" style="border:1px solid var(--border);background:var(--bg);color:var(--text);border-radius:7px;padding:9px"></select>
+    <button class="btn btn-primary" id="npCreate">Create</button>
+    <button class="btn" id="npCancel">Cancel</button>
+  </div>
   <div class="share-strip">
     <span>👋 <b>Hi Christine!</b> Sketch freely — your work saves on this device as you go. Sign in under the <b>Account</b> tab to also save to the library you and Smitty share.</span>
     <button id="stripShareBtn">How to keep it ↓</button>
@@ -87,7 +95,7 @@ label.field span, .label{font-size:11px;font-weight:700;letter-spacing:.06em;tex
     <section id="canvasSection" aria-label="Floor plan">
       <div id="svgWrap">
         <svg id="planSvg" role="application" aria-label="Kitchen floor plan editor"></svg>
-        <div class="hint">Drag pieces to move · pinch or scroll to zoom · drag right / bottom wall to resize room</div>
+        <div class="hint">Drag pieces and walls to move · orange ends stretch · pinch or scroll to zoom · drag right / bottom edge to resize room</div>
         <div class="zoomctl">
           <span id="scaleLabel" class="mono" style="background:rgba(0,0,0,.35);color:#dcebf7;font-size:12px;padding:8px;border-radius:6px">2.0 px/in</span>
           <button id="zoomOut" aria-label="Zoom out">−</button>
@@ -287,7 +295,7 @@ function renderTabs(){
   tabsNav.innerHTML=TABS.map(t=>`<button data-tab="${t.id}" class="${currentTab===t.id?'active':''}">${t.label}${t.id==='checks'&&ic?`<span class="badge">${ic}</span>`:''}</button>`).join('');
   tabsNav.querySelectorAll('button').forEach(b=>b.onclick=()=>{currentTab=b.dataset.tab; renderTabs(); renderPanel();});
 }
-function updateHeader(){const a=getAnalysis(); budgetPill.textContent=fmtMoney(a.budgetCents)+' · '+design.items.length+' pcs'; const tag=document.getElementById('projectTag'); if(tag) tag.textContent=(design.meta&&design.meta.roomType)||'Kitchen'; scaleLabel.textContent=view.scale.toFixed(1)+' px/in'; renderTabs();}
+function updateHeader(){const a=getAnalysis(); budgetPill.textContent=fmtMoney(a.budgetCents)+' · '+design.items.length+' pcs'; const tag=document.getElementById('projectTag'); if(tag) tag.textContent=(design.meta&&design.meta.roomType)||'Kitchen'; scaleLabel.textContent=view.scale.toFixed(1)+' px/in'; renderTabs(); try{refreshProjSelect()}catch(_){}}
 
 // ---------- Canvas rendering ----------
 function renderCanvas(){
@@ -308,11 +316,13 @@ function renderCanvas(){
   // interior wall segments
   for(const w of (design.walls||[])){
     const r=wallRect(w), selW=selectedWallId===w.id;
-    s+=`<g data-type="wallseg" data-id="${w.id}" style="cursor:move"><rect x="${r.x}" y="${r.y}" width="${r.w}" height="${r.d}" fill="rgba(220,235,247,0.88)" stroke="${selW?'#e8a33d':'var(--bp-line)'}" stroke-width="${selW?1.1:0.7}"/><line x1="${r.x+r.w/2}" y1="${r.y}" x2="${r.x+r.w/2}" y2="${r.y+r.d}" stroke="var(--bp-dim)" stroke-width="0.3" opacity="0.5" style="display:${w.orient==='h'?'none':'block'}"/><line x1="${r.x}" y1="${r.y+r.d/2}" x2="${r.x+r.w}" y2="${r.y+r.d/2}" stroke="var(--bp-dim)" stroke-width="0.3" opacity="0.5" style="display:${w.orient==='v'?'none':'block'}"/></g>`;
+    s+=`<g data-type="wallseg" data-id="${w.id}" style="cursor:move"><rect x="${w.orient==='h'?r.x-2:r.x-5}" y="${w.orient==='h'?r.y-5:r.y-2}" width="${w.orient==='h'?r.w+4:r.w+10}" height="${w.orient==='h'?r.d+10:r.d+4}" fill="transparent"/><rect x="${r.x}" y="${r.y}" width="${r.w}" height="${r.d}" fill="rgba(220,235,247,0.88)" stroke="${selW?'#e8a33d':'var(--bp-line)'}" stroke-width="${selW?1.1:0.7}"/><line x1="${r.x+r.w/2}" y1="${r.y}" x2="${r.x+r.w/2}" y2="${r.y+r.d}" stroke="var(--bp-dim)" stroke-width="0.3" opacity="0.5" style="display:${w.orient==='h'?'none':'block'}"/><line x1="${r.x}" y1="${r.y+r.d/2}" x2="${r.x+r.w}" y2="${r.y+r.d/2}" stroke="var(--bp-dim)" stroke-width="0.3" opacity="0.5" style="display:${w.orient==='v'?'none':'block'}"/></g>`;
     if(selW){
       const e0=w.orient==='h'?{x:r.x,y:r.y+r.d/2}:{x:r.x+r.w/2,y:r.y};
       const e1=w.orient==='h'?{x:r.x+r.w,y:r.y+r.d/2}:{x:r.x+r.w/2,y:r.y+r.d};
-      s+=`<g fill="#e8a33d" stroke="#16324f" stroke-width="0.4"><circle cx="${e0.x}" cy="${e0.y}" r="2.2" data-type="wallend" data-id="${w.id}" data-end="0" style="cursor:${w.orient==='h'?'ew-resize':'ns-resize'}"/><circle cx="${e1.x}" cy="${e1.y}" r="2.2" data-type="wallend" data-id="${w.id}" data-end="1" style="cursor:${w.orient==='h'?'ew-resize':'ns-resize'}"/></g>`;
+      s+=`<g fill="#e8a33d" stroke="#16324f" stroke-width="0.4"><circle cx="${e0.x}" cy="${e0.y}" r="7" fill="transparent" stroke="none" data-type="wallend" data-id="${w.id}" data-end="0" style="cursor:${w.orient==='h'?'ew-resize':'ns-resize'}"/><circle cx="${e1.x}" cy="${e1.y}" r="7" fill="transparent" stroke="none" data-type="wallend" data-id="${w.id}" data-end="1" style="cursor:${w.orient==='h'?'ew-resize':'ns-resize'}"/><circle cx="${e0.x}" cy="${e0.y}" r="3.4" data-type="wallend" data-id="${w.id}" data-end="0" style="cursor:${w.orient==='h'?'ew-resize':'ns-resize'}"/><circle cx="${e1.x}" cy="${e1.y}" r="3.4" data-type="wallend" data-id="${w.id}" data-end="1" style="cursor:${w.orient==='h'?'ew-resize':'ns-resize'}"/></g>`;
+      const chipX=w.orient==='h'?r.x+r.w/2:r.x+r.w/2+8.5, chipY=w.orient==='h'?r.y-8:r.y+r.d/2;
+      s+=`<g data-type="walldel" data-id="${w.id}" style="cursor:pointer"><circle cx="${chipX}" cy="${chipY}" r="3.6" fill="#b3402e" stroke="#ffffff" stroke-width="0.6"/><text x="${chipX}" y="${chipY+1.7}" text-anchor="middle" font-size="4.8" font-weight="700" fill="#ffffff" pointer-events="none">✕</text></g>`;
     }
   }
   // items
@@ -366,6 +376,7 @@ svg.addEventListener('pointerdown',e=>{
   const type=t.dataset.type;
   if(type==='item'){const item=design.items.find(i=>i.id===t.dataset.id); if(!item)return; selectedItemId=item.id; selectedOpeningId=null; selectedWallId=null; currentTab='edit'; const inch=toInches(e.clientX,e.clientY); drag={type:'item',id:item.id,grabDX:inch.x-item.xIn,grabDY:inch.y-item.yIn}; renderTabs(); renderCanvas(); renderPanel(); e.stopPropagation(); return}
   if(type==='opening'){const op=design.openings.find(o=>o.id===t.dataset.id); if(!op)return; selectedOpeningId=op.id; selectedItemId=null; selectedWallId=null; currentTab='edit'; const inch=toInches(e.clientX,e.clientY); const along=(op.wall==='north'||op.wall==='south')?inch.x:inch.y; drag={type:'opening',id:op.id,grabOff:along-op.offsetIn}; renderTabs(); renderCanvas(); renderPanel(); e.stopPropagation(); return}
+  if(type==='walldel'){const w=(design.walls||[]).find(x=>x.id===t.dataset.id); if(w){design.walls=design.walls.filter(x=>x.id!==w.id); selectedWallId=null; renderCanvas(); updateHeader(); renderPanel();} e.stopPropagation(); return}
   if(type==='wallseg'){const w=(design.walls||[]).find(x=>x.id===t.dataset.id); if(!w)return; selectedWallId=w.id; selectedItemId=null; selectedOpeningId=null; currentTab='edit'; const inch=toInches(e.clientX,e.clientY); drag={type:'wallseg',id:w.id,grabDX:inch.x-w.xIn,grabDY:inch.y-w.yIn}; renderTabs(); renderCanvas(); renderPanel(); e.stopPropagation(); return}
   if(type==='wallend'){drag={type:'wallend',id:t.dataset.id,end:+t.dataset.end}; e.stopPropagation(); return}
   if(type==='handle'){drag={type:'resize',id:t.dataset.id,handle:t.dataset.handle}; e.stopPropagation(); return}
@@ -715,6 +726,40 @@ document.getElementById('topDownload').onclick=()=>{ if(window.__doDownload) win
 document.getElementById('stripShareBtn').onclick=()=>{currentTab='share'; renderTabs(); renderPanel(); panel.scrollTop=0};
 document.getElementById('designName').addEventListener('input',()=>{});
 
+// ---------- Header project switcher (dropdown + New project) ----------
+function projOptionsList(){
+  if(cloudUser) return cloudRows.map(r=>({id:r.id,name:r.name||'Untitled design',active:r.id===currentCloudId}));
+  const ids=localLib?Object.keys(localLib.projects):[];
+  return ids.map(id=>{ const p=localLib.projects[id]||{}; return {id:id, name:p.name||'Untitled project', active:id===activeLocalId}; });
+}
+function refreshProjSelect(){
+  const sel=document.getElementById('projSelect'); if(!sel) return;
+  const opts=projOptionsList();
+  if(!opts.some(o=>o.active)) opts.unshift({id:'__current__',name:(document.getElementById('designName').value||'Untitled design'),active:true});
+  sel.innerHTML=opts.map(o=>'<option value="'+o.id+'"'+(o.active?' selected':'')+'>'+esc(o.name)+'</option>').join('');
+}
+document.getElementById('projSelect').addEventListener('change',e=>{
+  const id=e.target.value; if(!id||id==='__current__') return;
+  if(cloudUser){ const r=cloudRows.find(x=>x.id===id); if(r){ cloudLoad(r); if(currentTab==='account') renderPanel(); } }
+  else switchLocalProject(id);
+  refreshProjSelect();
+});
+document.getElementById('projNewBtn').onclick=()=>{
+  const bar=document.getElementById('projCreateBar'); const show=bar.style.display==='none';
+  bar.style.display=show?'flex':'none';
+  if(show){ const inp=document.getElementById('npName'); inp.value=''; inp.focus(); }
+};
+document.getElementById('npCancel').onclick=()=>{ document.getElementById('projCreateBar').style.display='none'; };
+document.getElementById('npCreate').onclick=async()=>{
+  const nm=(document.getElementById('npName').value||'').trim()||'Untitled project';
+  const tp=document.getElementById('npType').value||'Kitchen';
+  document.getElementById('projCreateBar').style.display='none';
+  if(cloudUser){ await cloudNew(nm,tp); refreshCloudList(); }
+  else createLocalProject(nm,tp);
+  refreshProjSelect();
+};
+(function(){ const t=document.getElementById('npType'); if(t) t.innerHTML=ROOM_TYPES.map(x=>'<option value="'+x+'">'+x+'</option>').join(''); })();
+
 // init
 renderTabs(); renderPanel(); updateHeader();
 // fit after layout settles
@@ -812,6 +857,7 @@ function rowRoomType(row){
 }
 // One coherent Projects list: cloud rows when signed in, the on-device library when not.
 function renderProjectList(){
+  try{refreshProjSelect()}catch(_){}
   const el=document.getElementById('projectList'); if(!el) return;
   const badge=rt=>'<span class="mono" style="font-size:11px;background:var(--surface-alt);border-radius:999px;padding:2px 8px;color:var(--dim);white-space:nowrap">'+esc(rt)+'</span>';
   if(cloudUser){
