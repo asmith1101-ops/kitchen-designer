@@ -73,6 +73,7 @@ label.field span, .label{font-size:11px;font-weight:700;letter-spacing:.06em;tex
   <header>
     <span class="logo font-display" aria-hidden="true">⌂</span>
     <input id="designName" value="Our kitchen — sketch" aria-label="Design name">
+    <span id="projectTag" class="pill">Kitchen</span>
     <span id="budgetPill" class="pill">$0 · 0 pcs</span>
     <span id="saveStatus">Sign in for cloud save</span>
     <button id="topDownload" class="btn btn-primary" style="padding:7px 12px;font-size:13px">Download copy</button>
@@ -117,20 +118,28 @@ const CATALOG=[
 {id:"pantry-24",name:"Tall pantry 24″",category:"Cabinets",layer:"floor",role:null,wIn:24,dIn:24,hIn:84,color:"#7a5230",blurb:"Full-height pantry"},
 {id:"wall-30",name:"Wall cabinet 30″",category:"Cabinets",layer:"upper",role:null,wIn:30,dIn:12,hIn:30,color:"#e8e4da",blurb:"Upper cabinet, 12″ deep"},
 {id:"wall-36",name:"Wall cabinet 36″",category:"Cabinets",layer:"upper",role:null,wIn:36,dIn:12,hIn:30,color:"#e8e4da",blurb:"Wide upper cabinet"},
-{id:"range-30",name:"Range 30″",category:"Appliances",layer:"floor",role:"cooking",wIn:30,dIn:27,hIn:36,color:"#b9c0c7",blurb:"Freestanding range — cooking point"},
-{id:"cooktop-30",name:"Cooktop 30″",category:"Appliances",layer:"upper",role:"cooking",wIn:30,dIn:21,hIn:3,color:"#3a3f45",blurb:"Sits on a base cabinet"},
-{id:"oven-30",name:"Wall oven 30″",category:"Appliances",layer:"floor",role:"cooking",wIn:30,dIn:24,hIn:54,color:"#b9c0c7",blurb:"Built-in oven tower"},
-{id:"fridge-36",name:"Refrigerator 36″",category:"Appliances",layer:"floor",role:"fridge",wIn:36,dIn:33,hIn:70,color:"#b9c0c7",blurb:"Standard French-door fridge"},
-{id:"dishwasher-24",name:"Dishwasher 24″",category:"Appliances",layer:"floor",role:null,wIn:24,dIn:24,hIn:34,color:"#b9c0c7",blurb:"Built-in, by the sink"},
-{id:"microwave-24",name:"Microwave 24″",category:"Appliances",layer:"upper",role:null,wIn:24,dIn:17,hIn:17,color:"#3a3f45",blurb:"Over-range or shelf"},
-{id:"hood-30",name:"Range hood 30″",category:"Appliances",layer:"upper",role:null,wIn:30,dIn:20,hIn:30,color:"#b9c0c7",blurb:"Vent hood over cooktop"},
+{id:"range-30",name:"Range 30″",category:"Appliances",layer:"floor",role:"cooking",wIn:30,dIn:27,hIn:36,color:"#b9c0c7",blurb:"Freestanding range — cooking point",fixed:true},
+{id:"cooktop-30",name:"Cooktop 30″",category:"Appliances",layer:"upper",role:"cooking",wIn:30,dIn:21,hIn:3,color:"#3a3f45",blurb:"Sits on a base cabinet",fixed:true},
+{id:"oven-30",name:"Wall oven 30″",category:"Appliances",layer:"floor",role:"cooking",wIn:30,dIn:24,hIn:54,color:"#b9c0c7",blurb:"Built-in oven tower",fixed:true},
+{id:"fridge-36",name:"Refrigerator 36″",category:"Appliances",layer:"floor",role:"fridge",wIn:36,dIn:33,hIn:70,color:"#b9c0c7",blurb:"Standard French-door fridge",fixed:true},
+{id:"dishwasher-24",name:"Dishwasher 24″",category:"Appliances",layer:"floor",role:null,wIn:24,dIn:24,hIn:34,color:"#b9c0c7",blurb:"Built-in, by the sink",fixed:true},
+{id:"microwave-24",name:"Microwave 24″",category:"Appliances",layer:"upper",role:null,wIn:24,dIn:17,hIn:17,color:"#3a3f45",blurb:"Over-range or shelf",fixed:true},
+{id:"hood-30",name:"Range hood 30″",category:"Appliances",layer:"upper",role:null,wIn:30,dIn:20,hIn:30,color:"#b9c0c7",blurb:"Vent hood over cooktop",fixed:true},
+{id:"washer-27",name:"Washer 27″",category:"Laundry",layer:"floor",role:null,wIn:27,dIn:27,hIn:39,color:"#b9c0c7",blurb:"Front-load washer — defined size",fixed:true,roomTypes:["Laundry Room"]},
+{id:"dryer-27",name:"Dryer 27″",category:"Laundry",layer:"floor",role:null,wIn:27,dIn:28,hIn:39,color:"#b9c0c7",blurb:"Front-load dryer — defined size",fixed:true,roomTypes:["Laundry Room"]},
+{id:"laundry-sink-24",name:"Laundry sink cabinet 24″",category:"Laundry",layer:"floor",role:null,wIn:24,dIn:24,hIn:36,color:"#8a9a7b",blurb:"Utility sink cabinet — buildable",roomTypes:["Laundry Room"]},
+{id:"desk-60",name:"Desk 60×30",category:"Office",layer:"floor",role:null,wIn:60,dIn:30,hIn:30,color:"#7a5230",blurb:"Work desk — stretch it to fit",roomTypes:["Office"]},
+{id:"bookshelf-36",name:"Bookshelf 36″",category:"Office",layer:"floor",role:null,wIn:36,dIn:12,hIn:72,color:"#7a5230",blurb:"Tall bookcase — buildable",roomTypes:["Office"]},
+{id:"filecab-15",name:"Filing cabinet 15″",category:"Office",layer:"floor",role:null,wIn:15,dIn:18,hIn:52,color:"#3a3f45",blurb:"Vertical file — defined size",fixed:true,roomTypes:["Office"]},
 {id:"island-60",name:"Island 60×36",category:"Islands & seating",layer:"floor",role:null,wIn:60,dIn:36,hIn:36,color:"#4a6076",blurb:"Freestanding island — keep 42″ clear"},
 {id:"peninsula-48",name:"Peninsula 48×24",category:"Islands & seating",layer:"floor",role:null,wIn:48,dIn:24,hIn:34.5,color:"#4a6076",blurb:"Counter run attached to wall"},
 {id:"table-72",name:"Table 72×36",category:"Islands & seating",layer:"floor",role:null,wIn:72,dIn:36,hIn:30,color:"#7a5230",blurb:"Eat-in kitchen table"},
 {id:"stool-16",name:"Counter stool",category:"Islands & seating",layer:"floor",role:null,wIn:16,dIn:16,hIn:24,color:"#3a3f45",blurb:"16″ square stool"},
 {id:"cart-30",name:"Rolling cart 30×18",category:"Islands & seating",layer:"floor",role:null,wIn:30,dIn:18,hIn:34,color:"#8a9a7b",blurb:"Mobile prep cart"},
 ];
-const CATEGORIES=["Cabinets","Appliances","Islands & seating"];
+const CATEGORIES=["Cabinets","Appliances","Islands & seating","Laundry","Office"];
+const ROOM_TYPES=["Kitchen","Office","Laundry Room","Bathroom","Bedroom","Living Room","Other"];
+const ROOM_TYPE_DIMS={"Kitchen":[168,144],"Office":[132,144],"Laundry Room":[96,108],"Bathroom":[144,144],"Bedroom":[144,144],"Living Room":[144,144],"Other":[144,144]};
 const FINISHES=[{name:"Natural oak",hex:"#c99a5b"},{name:"Walnut",hex:"#7a5230"},{name:"Butcher block",hex:"#d9b380"},{name:"Painted white",hex:"#e8e4da"},{name:"Slate blue",hex:"#4a6076"},{name:"Sage",hex:"#8a9a7b"},{name:"Charcoal",hex:"#3a3f45"},{name:"Stainless",hex:"#b9c0c7"},{name:"Matte black",hex:"#26262a"},{name:"Marble",hex:"#dfe3e6"}];
 const ROOM_PRESETS=[{label:"10 × 12",w:120,d:144},{label:"12 × 12",w:144,d:144},{label:"12 × 14",w:144,d:168},{label:"14 × 16",w:168,d:192},{label:"16 × 20",w:192,d:240},{label:"Galley 8 × 16",w:96,d:192}];
 
@@ -145,6 +154,9 @@ function fmtIn(ins){const r=Math.round(ins*10)/10;const ft=Math.floor(r/12);cons
 function fmtMoney(c){return (c/100).toLocaleString('en-US',{style:'currency',currency:'USD',minimumFractionDigits:2,maximumFractionDigits:2})}
 function openingPoint(op,room){const mid=op.offsetIn+op.widthIn/2;switch(op.wall){case'north':return{x:mid,y:0,nx:0,ny:-1,horizontal:true};case'south':return{x:mid,y:room.depthIn,nx:0,ny:1,horizontal:true};case'west':return{x:0,y:mid,nx:-1,ny:0,horizontal:false};case'east':return{x:room.widthIn,y:mid,nx:1,ny:0,horizontal:false}}}
 function distFt(a,b){return Math.hypot(a.x-b.x,a.y-b.y)/12}
+function snap05(v){return Math.round(v*2)/2}
+function wallRect(w){return w.orient==='v'?{x:w.xIn,y:w.yIn,w:w.thicknessIn,d:w.lengthIn}:{x:w.xIn,y:w.yIn,w:w.lengthIn,d:w.thicknessIn}}
+function flipWall(w){const r=wallRect(w); const cx=r.x+r.w/2, cy=r.y+r.d/2; w.orient=w.orient==='h'?'v':'h'; const nw=w.orient==='h'?w.lengthIn:w.thicknessIn; const nd=w.orient==='h'?w.thicknessIn:w.lengthIn; w.xIn=clamp(snap(cx-nw/2),0,Math.max(0,design.room.widthIn-nw)); w.yIn=clamp(snap(cy-nd/2),0,Math.max(0,design.room.depthIn-nd))}
 // ---------- Budget ----------
 // Money is stored as integer cents, matching item.priceCents.
 // design.budget = { target: <cents, 0 = unset>, custom: [ {id, name, qty, unitCost: <cents>, note} ] }
@@ -160,6 +172,33 @@ function ensureBudget(d){
   });
   d.budget={target,custom};
   return d.budget;
+}
+// Brings any design (legacy saves, imports, cloud rows) up to the current shape:
+// walls[], meta.roomType, and item.fixedSize derived from the catalog (single source).
+function normalizeDesign(d){
+  if(!d||typeof d!=='object') return d;
+  if(!Array.isArray(d.walls)) d.walls=[];
+  d.walls=d.walls.filter(w=>w&&typeof w==='object').map(w=>{
+    let len=Number(w.lengthIn); if(!isFinite(len)) len=48;
+    let th=Number(w.thicknessIn); if(!isFinite(th)) th=4.5;
+    return {id:(w.id!=null&&w.id!=='')?String(w.id):uid(), xIn:isFinite(Number(w.xIn))?Number(w.xIn):0, yIn:isFinite(Number(w.yIn))?Number(w.yIn):0, lengthIn:clamp(len,6,1200), orient:w.orient==='v'?'v':'h', thicknessIn:clamp(th,2,12)};
+  });
+  if(!d.meta||typeof d.meta!=='object') d.meta={};
+  if(!ROOM_TYPES.includes(d.meta.roomType)) d.meta.roomType='Kitchen';
+  if(Array.isArray(d.items)) for(const it of d.items){
+    if(!it||typeof it!=='object') continue;
+    const e=it.catalogId?CATALOG.find(c=>c.id===it.catalogId):null;
+    if(e) it.fixedSize=!!e.fixed; else if(it.fixedSize==null) it.fixedSize=false;
+  }
+  return d;
+}
+function newDesignFor(roomType){
+  const d=emptyDesign();
+  const rt=ROOM_TYPES.includes(roomType)?roomType:'Kitchen';
+  const dims=ROOM_TYPE_DIMS[rt]||ROOM_TYPE_DIMS.Other;
+  d.room.widthIn=dims[0]; d.room.depthIn=dims[1];
+  d.meta={roomType:rt}; d.items=[];
+  return d;
 }
 // Single source of truth for every budget figure in the app (Budget tab, header pill, Checks).
 // All money fields are cents. remaining/pctUsed are null when no target is set.
@@ -195,6 +234,8 @@ function computeBudget(d){
 function analyze(data){
   const room=data.room, items=data.items; const overlaps=[],outOfBounds=[],walkways=[];
   for(const it of items){const r=itemRect(it); if(r.x<-0.05||r.y<-0.05||r.x+r.w>room.widthIn+0.05||r.y+r.d>room.depthIn+0.05) outOfBounds.push(it)}
+  const wallsArr=Array.isArray(data.walls)?data.walls:[];
+  for(const it of items){ if(it.layer!=='floor') continue; const r=itemRect(it); for(const w of wallsArr){ if(rectsOverlap(r,wallRect(w))) overlaps.push({aId:it.id,bId:w.id,aName:it.name,bName:'Interior wall'}); } }
   for(let i=0;i<items.length;i++){const a=items[i],ra=itemRect(a); for(let j=i+1;j<items.length;j++){const b=items[j],rb=itemRect(b);
     // Upper pieces (wall cabinets, cooktops, hoods) are meant to sit over floor pieces in plan view — never a collision.
     if(a.layer!==b.layer) continue;
@@ -211,8 +252,8 @@ function analyze(data){
   const b=computeBudget(data);
   return{overlaps,outOfBounds,walkways,triangle,budgetCents:b.total,pricedCount:b.pricedCount,unpricedCount:b.unpricedCount,areaSqFt:(room.widthIn*room.depthIn)/144}
 }
-function itemFromCatalog(e,x,y){return{id:uid(),catalogId:e.id,name:e.name,category:e.category,layer:e.layer,role:e.role,xIn:x,yIn:y,wIn:e.wIn,dIn:e.dIn,hIn:e.hIn,rotation:0,color:e.color,priceCents:null,productUrl:null,notes:null}}
-function emptyDesign(){return{room:{widthIn:168,depthIn:144,wallHeightIn:96},openings:[{id:uid(),wall:"north",offsetIn:54,widthIn:60,kind:"window"},{id:uid(),wall:"south",offsetIn:120,widthIn:36,kind:"door"}],items:[],budget:{target:0,custom:[]}}}
+function itemFromCatalog(e,x,y){return{id:uid(),catalogId:e.id,name:e.name,category:e.category,layer:e.layer,role:e.role,xIn:x,yIn:y,wIn:e.wIn,dIn:e.dIn,hIn:e.hIn,rotation:0,color:e.color,priceCents:null,productUrl:null,notes:null,fixedSize:!!e.fixed}}
+function emptyDesign(){return{room:{widthIn:168,depthIn:144,wallHeightIn:96},openings:[{id:uid(),wall:"north",offsetIn:54,widthIn:60,kind:"window"},{id:uid(),wall:"south",offsetIn:120,widthIn:36,kind:"door"}],items:[],walls:[],meta:{roomType:"Kitchen"},budget:{target:0,custom:[]}}}
 function findSpot(data,w,d,layer){const W=data.room.widthIn,D=data.room.depthIn,others=data.items.filter(i=>i.layer===layer); for(let y=0;y+d<=D;y+=6) for(let x=0;x+w<=W;x+=6){const r={x,y,w,d}; if(!others.some(o=>rectsOverlap(r,itemRect(o),0))) return{x,y}} return{x:Math.max(0,Math.round((W-w)/2)),y:Math.max(0,Math.round((D-d)/2))}}
 function runTemplate(items,data,entryId,x,y,rot){rot=rot||0; const e=CATALOG.find(c=>c.id===entryId); if(!e)return; const it=itemFromCatalog(e,x,y); it.rotation=rot; items.push(it)}
 function layoutTemplate(kind,data){const W=data.room.widthIn,D=data.room.depthIn,items=[]; runTemplate(items,data,"fridge-36",0,0); runTemplate(items,data,"base-24",36,0); runTemplate(items,data,"sink-33",60,0); runTemplate(items,data,"dishwasher-24",93,0); runTemplate(items,data,"base-24",117,0); runTemplate(items,data,"wall-30",60,0); runTemplate(items,data,"wall-30",117,0);
@@ -225,12 +266,12 @@ function shortName(n){return n.replace(/\s+\d+(″|×\d+.*)$/,"").trim()||n}
 function esc(s){return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;")}
 
 // ---------- Design serializer (single source of truth: download + cloud save) ----------
-function serializeDesign(){const name=(document.getElementById('designName').value||'kitchen-design').trim(); return {app:'kitchen-designer',version:1,name,exportedAt:new Date().toISOString(),data:design};}
+function serializeDesign(){const name=(document.getElementById('designName').value||'kitchen-design').trim(); return {app:'kitchen-designer',version:1,name,roomType:(design.meta&&design.meta.roomType)||'Kitchen',exportedAt:new Date().toISOString(),data:design};}
 
 // ---------- State ----------
 let design = emptyDesign();
 design.items = layoutTemplate("l-shape", design);
-let selectedItemId=null, selectedOpeningId=null, currentTab="add", searchQuery="", customOpen=false, confirmTemplate=null, confirmClear=false;
+let selectedItemId=null, selectedOpeningId=null, selectedWallId=null, currentTab="add", searchQuery="", customOpen=false, confirmTemplate=null, confirmClear=false, confirmWallDelete=null, catalogScope="room";
 let view={scale:2,tx:40,ty:40}; let containerSize={w:600,h:400}; let userMoved=false; let fitted=false;
 
 // ---------- DOM refs ----------
@@ -246,7 +287,7 @@ function renderTabs(){
   tabsNav.innerHTML=TABS.map(t=>`<button data-tab="${t.id}" class="${currentTab===t.id?'active':''}">${t.label}${t.id==='checks'&&ic?`<span class="badge">${ic}</span>`:''}</button>`).join('');
   tabsNav.querySelectorAll('button').forEach(b=>b.onclick=()=>{currentTab=b.dataset.tab; renderTabs(); renderPanel();});
 }
-function updateHeader(){const a=getAnalysis(); budgetPill.textContent=fmtMoney(a.budgetCents)+' · '+design.items.length+' pcs'; scaleLabel.textContent=view.scale.toFixed(1)+' px/in'; renderTabs();}
+function updateHeader(){const a=getAnalysis(); budgetPill.textContent=fmtMoney(a.budgetCents)+' · '+design.items.length+' pcs'; const tag=document.getElementById('projectTag'); if(tag) tag.textContent=(design.meta&&design.meta.roomType)||'Kitchen'; scaleLabel.textContent=view.scale.toFixed(1)+' px/in'; renderTabs();}
 
 // ---------- Canvas rendering ----------
 function renderCanvas(){
@@ -264,6 +305,16 @@ function renderCanvas(){
   s+=`<text x="-10" y="${D/2}" text-anchor="middle" font-size="4.4" fill="var(--bp-dim)" transform="rotate(-90 -10 ${D/2})">${fmtIn(D)}</text>`;
   s+=`<rect x="0" y="0" width="${W}" height="${D}" fill="rgba(220,235,247,0.045)" stroke="var(--bp-line)" stroke-width="1.5"/>`;
   s+=`<rect x="${W-1.6}" y="0" width="3.2" height="${D}" fill="transparent" data-type="wall" data-wall="east" style="cursor:ew-resize"/><rect x="0" y="${D-1.6}" width="${W}" height="3.2" fill="transparent" data-type="wall" data-wall="south" style="cursor:ns-resize"/>`;
+  // interior wall segments
+  for(const w of (design.walls||[])){
+    const r=wallRect(w), selW=selectedWallId===w.id;
+    s+=`<g data-type="wallseg" data-id="${w.id}" style="cursor:move"><rect x="${r.x}" y="${r.y}" width="${r.w}" height="${r.d}" fill="rgba(220,235,247,0.88)" stroke="${selW?'#e8a33d':'var(--bp-line)'}" stroke-width="${selW?1.1:0.7}"/><line x1="${r.x+r.w/2}" y1="${r.y}" x2="${r.x+r.w/2}" y2="${r.y+r.d}" stroke="var(--bp-dim)" stroke-width="0.3" opacity="0.5" style="display:${w.orient==='h'?'none':'block'}"/><line x1="${r.x}" y1="${r.y+r.d/2}" x2="${r.x+r.w}" y2="${r.y+r.d/2}" stroke="var(--bp-dim)" stroke-width="0.3" opacity="0.5" style="display:${w.orient==='v'?'none':'block'}"/></g>`;
+    if(selW){
+      const e0=w.orient==='h'?{x:r.x,y:r.y+r.d/2}:{x:r.x+r.w/2,y:r.y};
+      const e1=w.orient==='h'?{x:r.x+r.w,y:r.y+r.d/2}:{x:r.x+r.w/2,y:r.y+r.d};
+      s+=`<g fill="#e8a33d" stroke="#16324f" stroke-width="0.4"><circle cx="${e0.x}" cy="${e0.y}" r="2.2" data-type="wallend" data-id="${w.id}" data-end="0" style="cursor:${w.orient==='h'?'ew-resize':'ns-resize'}"/><circle cx="${e1.x}" cy="${e1.y}" r="2.2" data-type="wallend" data-id="${w.id}" data-end="1" style="cursor:${w.orient==='h'?'ew-resize':'ns-resize'}"/></g>`;
+    }
+  }
   // items
   const ordered=[...design.items.filter(i=>i.layer==='floor'),...design.items.filter(i=>i.layer==='upper')];
   for(const item of ordered){
@@ -275,8 +326,14 @@ function renderCanvas(){
     s+=`<g><g transform="translate(${r.x} ${r.y})" data-type="item" data-id="${item.id}" style="cursor:grab"><rect x="0" y="0" width="${r.w}" height="${r.d}" fill="${item.color}" fill-opacity="${item.layer==='upper'?0.55:0.92}" stroke="${bad?'#e0705c':selected?'#e8a33d':'var(--bp-item-edge)'}" stroke-width="${selected||bad?1.1:0.6}" ${item.layer==='upper'?'stroke-dasharray="3 2"':''} rx="0.8"/>${glyph}</g>`;
     if(r.w>=20&&r.d>=13) s+=`<g pointer-events="none"><text x="${r.x+r.w/2}" y="${r.y+r.d/2-0.4}" text-anchor="middle" font-size="3.5" font-weight="600" fill="#16324f" opacity="0.88">${esc(shortName(item.name))}</text><text x="${r.x+r.w/2}" y="${r.y+r.d/2+3.8}" text-anchor="middle" font-size="2.9" fill="#16324f" opacity="0.65">${Math.round(r.w)}×${Math.round(r.d)}</text></g>`;
     else if(r.w>=13&&r.d>=10) s+=`<text x="${r.x+r.w/2}" y="${r.y+r.d/2+1.2}" text-anchor="middle" font-size="2.9" fill="#16324f" opacity="0.7" pointer-events="none">${Math.round(r.w)}×${Math.round(r.d)}</text>`;
-    if(selected) s+=`<g fill="#e8a33d" stroke="#16324f" stroke-width="0.4"><circle cx="${r.x+r.w}" cy="${r.y+r.d/2}" r="2" data-type="handle" data-id="${item.id}" data-handle="e" style="cursor:ew-resize"/><circle cx="${r.x+r.w/2}" cy="${r.y+r.d}" r="2" data-type="handle" data-id="${item.id}" data-handle="s" style="cursor:ns-resize"/><circle cx="${r.x+r.w}" cy="${r.y+r.d}" r="2.3" data-type="handle" data-id="${item.id}" data-handle="se" style="cursor:nwse-resize"/></g>`;
+    if(selected&&!item.fixedSize) s+=`<g fill="#e8a33d" stroke="#16324f" stroke-width="0.4"><circle cx="${r.x+r.w}" cy="${r.y+r.d/2}" r="2" data-type="handle" data-id="${item.id}" data-handle="e" style="cursor:ew-resize"/><circle cx="${r.x+r.w/2}" cy="${r.y+r.d}" r="2" data-type="handle" data-id="${item.id}" data-handle="s" style="cursor:ns-resize"/><circle cx="${r.x+r.w}" cy="${r.y+r.d}" r="2.3" data-type="handle" data-id="${item.id}" data-handle="se" style="cursor:nwse-resize"/></g>`;
     s+=`</g>`;
+  }
+  // live readout while resizing an item / stretching a wall
+  if(typeof drag!=='undefined'&&drag){
+    const labelTag=(x,y,txt)=>{const wdt=Math.max(15,txt.length*2.3+3); return `<g pointer-events="none"><rect x="${x}" y="${y}" width="${wdt}" height="6.6" rx="1.4" fill="#0f2740" stroke="#e8a33d" stroke-width="0.35"/><text x="${x+1.8}" y="${y+4.7}" font-size="3.7" fill="#dcebf7" class="mono">${txt}</text></g>`};
+    if(drag.type==='resize'){const it=design.items.find(i=>i.id===drag.id); if(it){const r=itemRect(it); s+=labelTag(r.x,Math.max(-16,r.y-8.6),`${Math.round(r.w*2)/2}″ × ${Math.round(r.d*2)/2}″`)}}
+    if(drag.type==='wallend'||drag.type==='wallseg'){const w=(design.walls||[]).find(x=>x.id===drag.id); if(w){const r=wallRect(w); s+=labelTag(r.x,Math.max(-16,r.y-8.6),'Wall '+fmtIn(w.lengthIn))}}
   }
   // openings
   for(const op of design.openings){
@@ -305,10 +362,12 @@ svg.addEventListener('pointerdown',e=>{
   pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
   try{svg.setPointerCapture(e.pointerId)}catch(_){}
   if(pointers.size===2){const pts=[...pointers.values()]; const mid=toInches((pts[0].x+pts[1].x)/2,(pts[0].y+pts[1].y)/2); drag={type:'pinch',startDist:Math.hypot(pts[0].x-pts[1].x,pts[0].y-pts[1].y),startScale:view.scale,midInchX:mid.x,midInchY:mid.y}; return}
-  if(!t){ selectedItemId=null; selectedOpeningId=null; drag={type:'pan',startX:e.clientX,startY:e.clientY,origTx:view.tx,origTy:view.ty}; renderCanvas(); if(currentTab==='edit') renderPanel(); return}
+  if(!t){ selectedItemId=null; selectedOpeningId=null; selectedWallId=null; drag={type:'pan',startX:e.clientX,startY:e.clientY,origTx:view.tx,origTy:view.ty}; renderCanvas(); if(currentTab==='edit') renderPanel(); return}
   const type=t.dataset.type;
-  if(type==='item'){const item=design.items.find(i=>i.id===t.dataset.id); if(!item)return; selectedItemId=item.id; selectedOpeningId=null; currentTab='edit'; const inch=toInches(e.clientX,e.clientY); drag={type:'item',id:item.id,grabDX:inch.x-item.xIn,grabDY:inch.y-item.yIn}; renderTabs(); renderCanvas(); renderPanel(); e.stopPropagation(); return}
-  if(type==='opening'){const op=design.openings.find(o=>o.id===t.dataset.id); if(!op)return; selectedOpeningId=op.id; selectedItemId=null; currentTab='edit'; const inch=toInches(e.clientX,e.clientY); const along=(op.wall==='north'||op.wall==='south')?inch.x:inch.y; drag={type:'opening',id:op.id,grabOff:along-op.offsetIn}; renderTabs(); renderCanvas(); renderPanel(); e.stopPropagation(); return}
+  if(type==='item'){const item=design.items.find(i=>i.id===t.dataset.id); if(!item)return; selectedItemId=item.id; selectedOpeningId=null; selectedWallId=null; currentTab='edit'; const inch=toInches(e.clientX,e.clientY); drag={type:'item',id:item.id,grabDX:inch.x-item.xIn,grabDY:inch.y-item.yIn}; renderTabs(); renderCanvas(); renderPanel(); e.stopPropagation(); return}
+  if(type==='opening'){const op=design.openings.find(o=>o.id===t.dataset.id); if(!op)return; selectedOpeningId=op.id; selectedItemId=null; selectedWallId=null; currentTab='edit'; const inch=toInches(e.clientX,e.clientY); const along=(op.wall==='north'||op.wall==='south')?inch.x:inch.y; drag={type:'opening',id:op.id,grabOff:along-op.offsetIn}; renderTabs(); renderCanvas(); renderPanel(); e.stopPropagation(); return}
+  if(type==='wallseg'){const w=(design.walls||[]).find(x=>x.id===t.dataset.id); if(!w)return; selectedWallId=w.id; selectedItemId=null; selectedOpeningId=null; currentTab='edit'; const inch=toInches(e.clientX,e.clientY); drag={type:'wallseg',id:w.id,grabDX:inch.x-w.xIn,grabDY:inch.y-w.yIn}; renderTabs(); renderCanvas(); renderPanel(); e.stopPropagation(); return}
+  if(type==='wallend'){drag={type:'wallend',id:t.dataset.id,end:+t.dataset.end}; e.stopPropagation(); return}
   if(type==='handle'){drag={type:'resize',id:t.dataset.id,handle:t.dataset.handle}; e.stopPropagation(); return}
   if(type==='wall'){drag={type:'wall',wall:t.dataset.wall}; e.stopPropagation(); return}
 });
@@ -319,12 +378,18 @@ svg.addEventListener('pointermove',e=>{
   if(drag.type==='pan'){view={...view,tx:drag.origTx+(e.clientX-drag.startX),ty:drag.origTy+(e.clientY-drag.startY)}; renderCanvas(); return}
   if(drag.type==='item'){const item=design.items.find(i=>i.id===drag.id); if(!item)return; const r=itemRect(item); item.xIn=clamp(snap(inch.x-drag.grabDX),0,Math.max(0,W-r.w)); item.yIn=clamp(snap(inch.y-drag.grabDY),0,Math.max(0,D-r.d)); renderCanvas(); updateHeader(); syncEditInputs(); return}
   if(drag.type==='opening'){const op=design.openings.find(o=>o.id===drag.id); if(!op)return; const along=(op.wall==='north'||op.wall==='south')?inch.x:inch.y; const wallLen=(op.wall==='north'||op.wall==='south')?W:D; op.offsetIn=clamp(snap(along-drag.grabOff),0,Math.max(0,wallLen-op.widthIn)); renderCanvas(); syncEditInputs(); return}
-  if(drag.type==='resize'){const item=design.items.find(i=>i.id===drag.id); if(!item)return; const r=itemRect(item); let ew=r.w,ed=r.d; if(drag.handle==='e'||drag.handle==='se') ew=clamp(snap(inch.x-r.x),6,600); if(drag.handle==='s'||drag.handle==='se') ed=clamp(snap(inch.y-r.y),6,600); const swapped=item.rotation%180!==0; item.wIn=swapped?ed:ew; item.dIn=swapped?ew:ed; renderCanvas(); updateHeader(); syncEditInputs(); return}
+  if(drag.type==='resize'){const item=design.items.find(i=>i.id===drag.id); if(!item||item.fixedSize)return; const r=itemRect(item); let ew=r.w,ed=r.d; if(drag.handle==='e'||drag.handle==='se') ew=clamp(snap05(inch.x-r.x),6,600); if(drag.handle==='s'||drag.handle==='se') ed=clamp(snap05(inch.y-r.y),6,600); const swapped=item.rotation%180!==0; item.wIn=swapped?ed:ew; item.dIn=swapped?ew:ed; renderCanvas(); updateHeader(); syncEditInputs(); return}
+  if(drag.type==='wallseg'){const w=(design.walls||[]).find(x=>x.id===drag.id); if(!w)return; const r=wallRect(w); w.xIn=clamp(snap(inch.x-drag.grabDX),0,Math.max(0,W-r.w)); w.yIn=clamp(snap(inch.y-drag.grabDY),0,Math.max(0,D-r.d)); renderCanvas(); return}
+  if(drag.type==='wallend'){const w=(design.walls||[]).find(x=>x.id===drag.id); if(!w)return;
+    if(w.orient==='h'){ if(drag.end===1){ w.lengthIn=clamp(snap05(inch.x-w.xIn),12,1200); } else { const endX=w.xIn+w.lengthIn; const nx=clamp(snap05(inch.x),0,Math.max(0,endX-12)); w.lengthIn=endX-nx; w.xIn=nx; } }
+    else { if(drag.end===1){ w.lengthIn=clamp(snap05(inch.y-w.yIn),12,1200); } else { const endY=w.yIn+w.lengthIn; const ny=clamp(snap05(inch.y),0,Math.max(0,endY-12)); w.lengthIn=endY-ny; w.yIn=ny; } }
+    renderCanvas(); return}
   if(drag.type==='wall'){if(drag.wall==='east') design.room.widthIn=clamp(snap(inch.x),48,720); else design.room.depthIn=clamp(snap(inch.y),48,720); renderCanvas(); updateHeader(); syncEditInputs(); return}
 });
 function endDrag(e){pointers.delete(e.pointerId); if(pointers.size===0) drag=null; else if(drag&&drag.type==='pinch') drag=null}
 svg.addEventListener('pointerup',endDrag); svg.addEventListener('pointercancel',endDrag);
 svg.addEventListener('wheel',e=>{e.preventDefault(); userMoved=true; const r=svg.getBoundingClientRect(); const px=e.clientX-r.left, py=e.clientY-r.top; const factor=e.deltaY<0?1.12:0.89; const scale=clamp(view.scale*factor,0.4,14); view={scale,tx:px-((px-view.tx)/view.scale)*scale, ty:py-((py-view.ty)/view.scale)*scale}; renderCanvas(); updateHeader();},{passive:false});
+svg.addEventListener('dblclick',e=>{const t=e.target.closest('[data-type]'); if(t&&t.dataset.type==='wallseg'){const w=(design.walls||[]).find(x=>x.id===t.dataset.id); if(w){flipWall(w); renderCanvas(); if(currentTab==='edit') renderPanel();}}});
 document.getElementById('zoomIn').onclick=()=>zoomBy(1.25);
 document.getElementById('zoomOut').onclick=()=>zoomBy(0.8);
 document.getElementById('zoomFit').onclick=()=>fit();
@@ -367,8 +432,9 @@ window.__numChange=function(el,bind){
 function finishPicker(current){
   return `<fieldset style="border:none;padding:0;margin:0"><legend class="label">Finish</legend><div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px">${FINISHES.map(f=>`<button class="finish-dot ${current===f.hex?'sel':''}" style="background:${f.hex}" title="${f.name}" aria-label="Finish ${f.name}" data-finish="${f.hex}"></button>`).join('')}<input type="color" value="${current}" data-colorpick style="width:40px;height:32px;border:1px solid var(--border);border-radius:6px;background:transparent"></div></fieldset>`;
 }
-function selectItem(id){selectedItemId=id; if(id){selectedOpeningId=null; currentTab='edit'} renderTabs(); renderCanvas(); renderPanel();}
-function selectOpening(id){selectedOpeningId=id; if(id){selectedItemId=null; currentTab='edit'} renderTabs(); renderCanvas(); renderPanel();}
+function selectItem(id){selectedItemId=id; if(id){selectedOpeningId=null; selectedWallId=null; currentTab='edit'} renderTabs(); renderCanvas(); renderPanel();}
+function selectOpening(id){selectedOpeningId=id; if(id){selectedItemId=null; selectedWallId=null; currentTab='edit'} renderTabs(); renderCanvas(); renderPanel();}
+function selectWall(id){selectedWallId=id; if(id){selectedItemId=null; selectedOpeningId=null; currentTab='edit'} renderTabs(); renderCanvas(); renderPanel();}
 
 // ---------- Panels ----------
 function renderPanel(){
@@ -382,11 +448,15 @@ function renderPanel(){
 }
 function renderAdd(){
   const q=searchQuery.trim().toLowerCase();
-  const matches=e=>!q||e.name.toLowerCase().includes(q)||e.blurb.toLowerCase().includes(q)||e.category.toLowerCase().includes(q);
+  const roomType=(design.meta&&design.meta.roomType)||'Kitchen';
+  const inScope=e=>catalogScope==='all'||(e.roomTypes||['Kitchen']).includes(roomType);
+  const matches=e=>inScope(e)&&(!q||e.name.toLowerCase().includes(q)||e.blurb.toLowerCase().includes(q)||e.category.toLowerCase().includes(q));
   let h=`<input class="search-input" id="searchBox" type="search" placeholder="Search cabinets, appliances…" value="${esc(searchQuery)}" aria-label="Search">`;
+  h+=`<div style="display:flex;gap:8px;align-items:center;margin-top:10px"><span class="label">Show</span><select id="catScope" style="border:1px solid var(--border);background:var(--bg);border-radius:6px;padding:7px"><option value="room" ${catalogScope==='room'?'selected':''}>${esc(roomType)} pieces</option><option value="all" ${catalogScope==='all'?'selected':''}>All pieces</option></select></div>`;
+  h+=`<section style="margin-top:18px;border:1px solid var(--border);border-radius:10px;padding:12px"><h2 class="font-display" style="font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--dim);margin:0">Room structure</h2><p style="font-size:13px;color:var(--dim);margin:6px 0 0;line-height:1.5">Interior wall segments are yours to shape: drag them around, stretch them from either end, flip them, delete them.</p><button class="btn btn-primary" id="addWallBtn" style="width:100%;margin-top:10px">+ Add a wall segment</button></section>`;
   for(const cat of CATEGORIES){const entries=CATALOG.filter(e=>e.category===cat&&matches(e)); if(!entries.length) continue;
     h+=`<section style="margin-top:20px"><h2 class="font-display" style="font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--dim);margin:0">${cat}</h2>`;
-    for(const e of entries) h+=`<div class="cat-item"><span class="swatch" style="background:${e.color}"></span><span style="flex:1;min-width:0"><span style="display:block;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${e.name}</span><span class="mono" style="font-size:12px;color:var(--dim)">${e.wIn}×${e.dIn}×${e.hIn}″ · ${e.blurb}</span></span><button class="btn btn-primary" style="padding:7px 14px" data-add="${e.id}">Add</button></div>`;
+    for(const e of entries) h+=`<div class="cat-item"><span class="swatch" style="background:${e.color}"></span><span style="flex:1;min-width:0"><span style="display:block;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${e.name}${e.fixed?' <span class="mono" style="font-size:11px;color:var(--dim)">fixed size</span>':''}</span><span class="mono" style="font-size:12px;color:var(--dim)">${e.wIn}×${e.dIn}×${e.hIn}″ · ${e.blurb}</span></span><button class="btn btn-primary" style="padding:7px 14px" data-add="${e.id}">Add</button></div>`;
     h+=`</section>`;
   }
   if(CATALOG.every(e=>!matches(e))) h+=`<p style="color:var(--dim);margin-top:16px">Nothing matches — add it as a custom product below.</p>`;
@@ -411,7 +481,9 @@ function renderAdd(){
   <button class="btn" id="clearAllBtn" style="width:100%;margin-top:8px">${confirmClear?'Tap again to clear everything':'Clear all pieces'}</button></section>`;
   panel.innerHTML=h;
   const sb=document.getElementById('searchBox'); sb.oninput=()=>{searchQuery=sb.value; const pos=sb.selectionStart; renderAdd(); const nb=document.getElementById('searchBox'); nb.focus(); nb.setSelectionRange(pos,pos)};
-  panel.querySelectorAll('[data-add]').forEach(b=>b.onclick=()=>{const e=CATALOG.find(c=>c.id===b.dataset.add); const spot=findSpot(design,e.wIn,e.dIn,e.layer); const it=itemFromCatalog(e,spot.x,spot.y); design.items.push(it); selectedItemId=it.id; selectedOpeningId=null; currentTab='edit'; renderTabs(); renderCanvas(); updateHeader(); renderPanel();});
+  panel.querySelectorAll('[data-add]').forEach(b=>b.onclick=()=>{const e=CATALOG.find(c=>c.id===b.dataset.add); const spot=findSpot(design,e.wIn,e.dIn,e.layer); const it=itemFromCatalog(e,spot.x,spot.y); design.items.push(it); selectedItemId=it.id; selectedOpeningId=null; selectedWallId=null; currentTab='edit'; renderTabs(); renderCanvas(); updateHeader(); renderPanel();});
+  const scopeSel=document.getElementById('catScope'); if(scopeSel) scopeSel.onchange=()=>{catalogScope=scopeSel.value; renderPanel()};
+  const awb=document.getElementById('addWallBtn'); if(awb) awb.onclick=()=>{const w={id:uid(),xIn:clamp(Math.round(design.room.widthIn/2-24),0,Math.max(0,design.room.widthIn-48)),yIn:clamp(Math.round(design.room.depthIn/2),0,Math.max(0,design.room.depthIn-5)),lengthIn:48,orient:'h',thicknessIn:4.5}; if(!Array.isArray(design.walls)) design.walls=[]; design.walls.push(w); selectedWallId=w.id; selectedItemId=null; selectedOpeningId=null; currentTab='edit'; renderTabs(); renderCanvas(); updateHeader(); renderPanel();};
   const oc=document.getElementById('openCustom'); if(oc) oc.onclick=()=>{customOpen=true; renderPanel()};
   const cc=document.getElementById('cp-cancel'); if(cc) cc.onclick=()=>{customOpen=false; renderPanel()};
   // Mark dimension fields once the user types in them, so Fetch never overwrites their numbers.
@@ -446,7 +518,7 @@ function renderAdd(){
     if(!name){err.textContent='Give the product a name.'; return} if(!(w>0&&d>0)){err.textContent='Width and depth must be more than zero.'; return}
     const price=parseFloat(document.getElementById('cp-price').value); const colorEl=document.querySelector('#cp-finish .finish-dot.sel'); const color=colorEl?colorEl.dataset.finish:FINISHES[0].hex;
     const spot=findSpot(design,w,d,document.getElementById('cp-layer').value);
-    const it={id:uid(),catalogId:null,name,category:document.getElementById('cp-cat').value,layer:document.getElementById('cp-layer').value,role:null,xIn:spot.x,yIn:spot.y,wIn:w,dIn:d,hIn:hh,rotation:0,color,priceCents:isFinite(price)&&price>=0?Math.round(price*100):null,productUrl:document.getElementById('cp-url').value.trim()||null,notes:document.getElementById('cp-notes').value.trim()||null};
+    const it={id:uid(),catalogId:null,name,category:document.getElementById('cp-cat').value,layer:document.getElementById('cp-layer').value,role:null,xIn:spot.x,yIn:spot.y,wIn:w,dIn:d,hIn:hh,rotation:0,color,priceCents:isFinite(price)&&price>=0?Math.round(price*100):null,productUrl:document.getElementById('cp-url').value.trim()||null,notes:document.getElementById('cp-notes').value.trim()||null,fixedSize:false};
     design.items.push(it); customOpen=false; selectedItemId=it.id; currentTab='edit'; renderTabs(); renderCanvas(); updateHeader(); renderPanel();
   };
   // finish picker in custom form
@@ -456,20 +528,27 @@ function renderAdd(){
   const clr=document.getElementById('clearAllBtn'); if(clr) clr.onclick=()=>{if(confirmClear){design.items=[]; confirmClear=false; selectedItemId=null; renderCanvas(); updateHeader(); renderPanel()} else {confirmClear=true; renderPanel()}};
 }
 function renderEdit(){
-  const item=design.items.find(i=>i.id===selectedItemId); const opening=design.openings.find(o=>o.id===selectedOpeningId);
+  const item=design.items.find(i=>i.id===selectedItemId); const opening=design.openings.find(o=>o.id===selectedOpeningId); const wall=(design.walls||[]).find(w=>w.id===selectedWallId);
   if(item){
+    const disField=(label,val)=>`<label class="field"><span>${label}</span><input type="number" value="${Math.round(val*10)/10}" disabled style="opacity:.55"></label>`;
+    const sizeFields=item.fixedSize
+      ? `<div class="grid3">${disField('Width (in)',item.wIn)}${disField('Depth (in)',item.dIn)}${numField('Height (in)','item.h',item.hIn,0,240)}</div><p style="font-size:13px;color:var(--oak);margin:-6px 0 0">Size set by product — can't be resized. You can still drag it to move it, rotate it, or delete it.</p>`
+      : `<div class="grid3">${numField('Width (in)','item.w',item.wIn,4,600)}${numField('Depth (in)','item.d',item.dIn,4,600)}${numField('Height (in)','item.h',item.hIn,0,240)}</div>`;
+    const tipHtml=item.fixedSize
+      ? `<p style="font-size:12px;color:var(--dim);margin:0">Tip: this is a defined product, so there's no resize handle — drag the piece itself to move it.</p>`
+      : `<p style="font-size:12px;color:var(--dim);margin:0">Tip: drag the orange dots on the plan to resize, or drag the piece itself to move it.</p>`;
     panel.innerHTML=`<div style="display:flex;flex-direction:column;gap:16px">
       <label class="field"><span>Name</span><input id="ed-name" value="${esc(item.name)}" style="font-weight:600"></label>
       <p class="mono" style="font-size:12px;color:var(--dim);margin:-8px 0 0">${esc(item.category)}${item.role==='sink'?' · sink (work triangle)':item.role==='cooking'?' · cooking (work triangle)':item.role==='fridge'?' · fridge (work triangle)':''}${item.layer==='upper'?' · sits on counter / wall':''}</p>
       <div class="grid2">${numField('X — from left wall (in)','item.x',item.xIn,0,1200)}${numField('Y — from top wall (in)','item.y',item.yIn,0,1200)}</div>
-      <div class="grid3">${numField('Width (in)','item.w',item.wIn,4,600)}${numField('Depth (in)','item.d',item.dIn,4,600)}${numField('Height (in)','item.h',item.hIn,0,240)}</div>
+      ${sizeFields}
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><button class="btn" id="ed-rotate">⟳ Rotate 90°</button><span class="mono" style="font-size:13px;color:var(--dim)">now ${item.rotation}°</span><label style="margin-left:auto;display:flex;align-items:center;gap:6px"><span class="label">Sits</span><select id="ed-layer" style="border:1px solid var(--border);background:var(--bg);border-radius:6px;padding:7px"><option value="floor" ${item.layer==='floor'?'selected':''}>Floor</option><option value="upper" ${item.layer==='upper'?'selected':''}>Counter / wall</option></select></label></div>
       <div id="ed-finish">${finishPicker(item.color)}</div>
       <div class="grid2"><label class="field"><span>Price ($)</span><input id="ed-price" inputmode="decimal" value="${item.priceCents!=null?item.priceCents/100:''}" placeholder="Not priced"></label><label class="field"><span>Product link</span><input id="ed-url" value="${esc(item.productUrl||'')}" placeholder="https://…"></label></div>
       ${item.productUrl?`<a href="${esc(item.productUrl)}" target="_blank" rel="noreferrer" style="font-size:14px;font-weight:600">Open product page ↗</a>`:''}
       <label class="field"><span>Notes</span><textarea id="ed-notes" rows="2" placeholder="Model, finish, quote details…">${esc(item.notes||'')}</textarea></label>
       <div style="display:flex;gap:8px;border-top:1px solid var(--border);padding-top:12px"><button class="btn" id="ed-dup" style="flex:1">Duplicate</button><button class="btn btn-rust" id="ed-del" style="flex:1">Delete</button></div>
-      <p style="font-size:12px;color:var(--dim);margin:0">Tip: drag the orange dots on the plan to resize, or drag the piece itself to move it.</p>
+      ${tipHtml}
     </div>`;
     document.getElementById('ed-name').oninput=e=>{item.name=e.target.value; renderCanvas()};
     document.getElementById('ed-rotate').onclick=()=>{const rot=(item.rotation+90)%360; item.rotation=rot; const sw=rot%180!==0; const ew=sw?item.dIn:item.wIn, ed=sw?item.wIn:item.dIn; item.xIn=clamp(item.xIn,0,Math.max(0,design.room.widthIn-ew)); item.yIn=clamp(item.yIn,0,Math.max(0,design.room.depthIn-ed)); renderCanvas(); renderPanel(); updateHeader()};
@@ -481,6 +560,19 @@ function renderEdit(){
     document.getElementById('ed-notes').onchange=e=>{item.notes=e.target.value||null};
     document.getElementById('ed-dup').onclick=()=>{const copy={...item,id:uid()}; const r=itemRect(item); copy.xIn=clamp(item.xIn+12,0,Math.max(0,design.room.widthIn-r.w)); copy.yIn=clamp(item.yIn+12,0,Math.max(0,design.room.depthIn-r.d)); design.items.push(copy); selectedItemId=copy.id; renderCanvas(); updateHeader(); renderPanel()};
     document.getElementById('ed-del').onclick=()=>{design.items=design.items.filter(i=>i.id!==item.id); selectedItemId=null; renderCanvas(); updateHeader(); renderPanel()};
+    return;
+  }
+  if(wall){
+    panel.innerHTML=`<div style="display:flex;flex-direction:column;gap:16px"><h2 class="font-display" style="font-size:18px;margin:0">Interior wall</h2>
+    <p style="font-size:14px;color:var(--dim);margin:0;line-height:1.5">Drag it on the plan to move it. Drag either orange end to stretch it, double-click it to flip it, or use the controls here.</p>
+    <div class="grid2"><label class="field"><span>Length (in)</span><input id="ed-wall-len" type="number" inputmode="decimal" min="12" max="1200" value="${Math.round(wall.lengthIn*10)/10}"></label><label class="field"><span>Thickness (in)</span><input id="ed-wall-th" type="number" inputmode="decimal" min="2" max="12" value="${Math.round(wall.thicknessIn*10)/10}"></label></div>
+    <p class="mono" style="font-size:13px;color:var(--dim);margin:0">Runs ${wall.orient==='h'?'left → right':'top → bottom'} · ${fmtIn(wall.lengthIn)} long</p>
+    <div style="display:flex;gap:8px;border-top:1px solid var(--border);padding-top:12px"><button class="btn" id="ed-wall-flip" style="flex:1">Flip orientation</button><button class="btn ${confirmWallDelete===wall.id?'btn-rust':''}" id="ed-wall-del" style="flex:1">${confirmWallDelete===wall.id?'Tap again to delete':'Delete wall'}</button></div>
+    </div>`;
+    document.getElementById('ed-wall-len').onchange=e=>{const v=parseFloat(e.target.value); if(isFinite(v)) wall.lengthIn=clamp(v,12,1200); renderCanvas(); renderPanel()};
+    document.getElementById('ed-wall-th').onchange=e=>{const v=parseFloat(e.target.value); if(isFinite(v)) wall.thicknessIn=clamp(v,2,12); renderCanvas(); renderPanel()};
+    document.getElementById('ed-wall-flip').onclick=()=>{flipWall(wall); renderCanvas(); renderPanel()};
+    document.getElementById('ed-wall-del').onclick=()=>{if(confirmWallDelete!==wall.id){confirmWallDelete=wall.id; renderPanel(); return} confirmWallDelete=null; design.walls=design.walls.filter(w=>w.id!==wall.id); selectedWallId=null; renderCanvas(); updateHeader(); renderPanel()};
     return;
   }
   if(opening){
@@ -496,7 +588,7 @@ function renderEdit(){
     document.getElementById('op-del').onclick=()=>{design.openings=design.openings.filter(o=>o.id!==opening.id); selectedOpeningId=null; renderCanvas(); renderPanel()};
     return;
   }
-  panel.innerHTML=`<div style="color:var(--dim)"><p class="font-display" style="font-size:18px;font-weight:800;color:var(--text);margin:0">Nothing selected</p><p style="margin-top:8px;line-height:1.5">Tap any cabinet, appliance, door, or window on the plan to edit it — move it, resize it, spin it, change its finish, or attach a real product with a price and link.</p><p class="mono" style="font-size:13px;margin-top:16px">Room ${fmtIn(design.room.widthIn)} × ${fmtIn(design.room.depthIn)} · ${design.items.length} pieces · ${design.openings.length} openings</p></div>`;
+  panel.innerHTML=`<div style="color:var(--dim)"><p class="font-display" style="font-size:18px;font-weight:800;color:var(--text);margin:0">Nothing selected</p><p style="margin-top:8px;line-height:1.5">Tap any cabinet, appliance, door, or window on the plan to edit it — move it, resize it, spin it, change its finish, or attach a real product with a price and link.</p><p class="mono" style="font-size:13px;margin-top:16px">Room ${fmtIn(design.room.widthIn)} × ${fmtIn(design.room.depthIn)} · ${design.items.length} pieces · ${(design.walls||[]).length} walls · ${design.openings.length} openings</p></div>`;
 }
 function renderRoom(){
   const wallName=w=>({north:"Top",south:"Bottom",west:"Left",east:"Right"})[w];
@@ -614,7 +706,7 @@ function renderShare(){
 function applyImportedDesign(parsed){
   const data=parsed.data||parsed;
   if(!data.room||!Array.isArray(data.items)||!Array.isArray(data.openings)) throw new Error('bad');
-  design=data; ensureBudget(design); if(parsed.name) document.getElementById('designName').value=parsed.name; selectedItemId=null; selectedOpeningId=null; fitted=false; fit(); renderCanvas(); updateHeader(); currentTab='checks'; renderTabs(); renderPanel();
+  design=data; ensureBudget(design); normalizeDesign(design); if(parsed.name) document.getElementById('designName').value=parsed.name; selectedItemId=null; selectedOpeningId=null; selectedWallId=null; fitted=false; fit(); renderCanvas(); updateHeader(); currentTab='checks'; renderTabs(); renderPanel();
 }
 document.getElementById('importFile').addEventListener('change',e=>{
   const f=e.target.files[0]; if(!f) return; const reader=new FileReader(); reader.onload=()=>{try{applyImportedDesign(JSON.parse(reader.result))}catch(err){ currentTab='share'; renderTabs(); renderPanel(); const m=document.getElementById('shareMsg'); if(m){m.style.color='var(--rust)'; m.textContent='That file could not be opened as a kitchen design.'}}}; reader.readAsText(f); e.target.value='';
@@ -631,8 +723,8 @@ setTimeout(()=>{const r=wrap.getBoundingClientRect(); containerSize={w:r.width,h
 <script>
 
 // ---------- Cloud save (Supabase) — shared household library ----------
-const SUPABASE_URL='https://phmkvubxlldxzdpjytqf.supabase.co';
-const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBobWt2dWJ4bGxkeHpkcGp5dHFmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcxNTMxNTMsImV4cCI6MjA5MjcyOTE1M30.gSunjBB4l9nEasU-ek0EssKthFJDdBgO9GUBZMNxnPc';
+const SUPABASE_URL='https://pbmkvubxlldxzdpjytqf.supabase.co';
+const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBibWt2dWJ4bGxkeHpkcGp5dHFmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcxNTMxNTMsImV4cCI6MjA5MjcyOTE1M30.gSunjBB4l9nEasU-ek0EssKthFJDdBgO9GUBZMNxnPc';
 let sb=null;
 try{ if(window.supabase&&window.supabase.createClient) sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY); }catch(e){ sb=null; }
 
@@ -641,11 +733,114 @@ let lastSavedSig=null, lastChangeSig='', lastChangeAt=0, savingNow=false, saveEr
 let confirmCloudDelete=null, knownDesignRef=design, cloudLoading=false;
 
 // ---------- Local (on-device) persistence — works signed out ----------
+// Storage is a small library under the same key: {kind:'library', activeId, projects:{id: payload}}.
+// Legacy single-design payloads are migrated into a one-project library on load.
 const LOCAL_KEY='kitchen-designer-local';
 let localSaved=false, lastLocalSig=null;
-function writeLocal(sig){
-  try{ localStorage.setItem(LOCAL_KEY, JSON.stringify(serializeDesign())); lastLocalSig=sig; localSaved=true; return true; }
+let localLib=null, activeLocalId=null, confirmLocalDelete=null;
+function persistLocalLibrary(){
+  if(!localLib) localLib={activeId:null,projects:{}};
+  if(!activeLocalId) activeLocalId=uid();
+  localLib.activeId=activeLocalId;
+  localLib.projects[activeLocalId]=serializeDesign();
+  try{ localStorage.setItem(LOCAL_KEY, JSON.stringify({app:'kitchen-designer',version:2,kind:'library',activeId:activeLocalId,projects:localLib.projects})); return true; }
   catch(e){ return false; }
+}
+function writeLocal(sig){
+  const ok=persistLocalLibrary();
+  if(ok){ lastLocalSig=sig; localSaved=true; }
+  return ok;
+}
+function openProjectPayload(payload){
+  const tab=currentTab;
+  applyImportedDesign(payload);
+  currentTab=(tab==='account')?'account':'add';
+  renderTabs(); renderPanel();
+}
+function switchLocalProject(id){
+  if(!localLib||!localLib.projects[id]) return;
+  if(id===activeLocalId){ renderProjectList(); return; }
+  persistLocalLibrary(); // stash the current project's latest state before leaving it
+  activeLocalId=id; localLib.activeId=id;
+  currentCloudId=null; currentCloudName=null; lastSavedSig=null; saveError=false;
+  openProjectPayload(localLib.projects[id]);
+  persistLocalLibrary();
+  setSaveStatus();
+}
+function createLocalProject(name, roomType){
+  persistLocalLibrary();
+  if(!localLib) localLib={activeId:null,projects:{}};
+  const payload={app:'kitchen-designer',version:1,name:name||'Untitled project',roomType:roomType,exportedAt:new Date().toISOString(),data:newDesignFor(roomType)};
+  const id=uid(); localLib.projects[id]=payload;
+  activeLocalId=id; localLib.activeId=id;
+  currentCloudId=null; currentCloudName=null; lastSavedSig=null; saveError=false;
+  openProjectPayload(payload);
+  persistLocalLibrary();
+  setSaveStatus();
+}
+function duplicateLocalProject(id){
+  if(!localLib||!localLib.projects[id]) return;
+  persistLocalLibrary();
+  const copy=JSON.parse(JSON.stringify(localLib.projects[id]));
+  copy.name=((copy.name||'Design')+' copy'); copy.exportedAt=new Date().toISOString();
+  localLib.projects[uid()]=copy;
+  persistLocalLibrary();
+  renderProjectList();
+}
+function deleteLocalProject(id){
+  if(!localLib||!localLib.projects[id]) return;
+  if(confirmLocalDelete!==id){ confirmLocalDelete=id; renderProjectList(); return; }
+  confirmLocalDelete=null;
+  const wasActive=id===activeLocalId;
+  delete localLib.projects[id];
+  if(wasActive){
+    currentCloudId=null; currentCloudName=null; lastSavedSig=null;
+    const rest=Object.keys(localLib.projects);
+    let payload;
+    if(rest.length){ activeLocalId=rest[0]; payload=localLib.projects[activeLocalId]; }
+    else { payload={app:'kitchen-designer',version:1,name:'Our kitchen — sketch',roomType:'Kitchen',exportedAt:new Date().toISOString(),data:newDesignFor('Kitchen')}; activeLocalId=uid(); localLib.projects[activeLocalId]=payload; }
+    localLib.activeId=activeLocalId;
+    openProjectPayload(payload);
+  }
+  persistLocalLibrary();
+  setSaveStatus();
+  if(currentTab==='account') renderPanel();
+}
+function rowRoomType(row){
+  const d=row&&row.data;
+  return (d&&d.data&&d.data.meta&&d.data.meta.roomType)||(d&&d.roomType)||'Kitchen';
+}
+// One coherent Projects list: cloud rows when signed in, the on-device library when not.
+function renderProjectList(){
+  const el=document.getElementById('projectList'); if(!el) return;
+  const badge=rt=>'<span class="mono" style="font-size:11px;background:var(--surface-alt);border-radius:999px;padding:2px 8px;color:var(--dim);white-space:nowrap">'+esc(rt)+'</span>';
+  if(cloudUser){
+    if(!cloudRows.length){ el.innerHTML='<p style="color:var(--dim);font-size:14px">No projects in the cloud library yet — create one above, or just start sketching and it will save.</p>'; return; }
+    el.innerHTML=cloudRows.map(r=>'<div style="display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--border)">'
+      +'<span style="flex:1;min-width:0"><span style="display:flex;align-items:center;gap:8px"><span style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(r.name||'Untitled design')+'</span>'+badge(rowRoomType(r))+(r.id===currentCloudId?'<span style="color:var(--good);font-size:12px;white-space:nowrap">● open</span>':'')+'</span>'
+      +'<span class="mono" style="font-size:12px;color:var(--dim)">'+esc(new Date(r.updated_at).toLocaleString())+'</span></span>'
+      +'<button class="btn" style="padding:7px 10px;font-size:13px" data-cloud-load="'+r.id+'">Open</button>'
+      +'<button class="btn" style="padding:7px 10px;font-size:13px" data-cloud-dup="'+r.id+'">Duplicate</button>'
+      +'<button class="btn '+(confirmCloudDelete===r.id?'btn-rust':'')+'" style="padding:7px 10px;font-size:13px" data-cloud-del="'+r.id+'">'+(confirmCloudDelete===r.id?'Tap again to delete':'Delete')+'</button>'
+      +'</div>').join('');
+    el.querySelectorAll('[data-cloud-load]').forEach(b=>b.onclick=()=>{ const r=cloudRows.find(x=>x.id===b.dataset.cloudLoad); if(r){ cloudLoad(r); currentTab='account'; renderTabs(); renderPanel(); } });
+    el.querySelectorAll('[data-cloud-dup]').forEach(b=>b.onclick=()=>{ const r=cloudRows.find(x=>x.id===b.dataset.cloudDup); if(r) cloudDuplicate(r); });
+    el.querySelectorAll('[data-cloud-del]').forEach(b=>b.onclick=()=>{ const r=cloudRows.find(x=>x.id===b.dataset.cloudDel); if(r) cloudDelete(r); });
+    return;
+  }
+  const ids=localLib?Object.keys(localLib.projects):[];
+  if(!ids.length){ el.innerHTML='<p style="color:var(--dim);font-size:14px">No projects on this device yet — create one above, or just start sketching and it will save here.</p>'; return; }
+  el.innerHTML=ids.map(id=>{ const p=localLib.projects[id]||{}; const rt=(p.data&&p.data.meta&&p.data.meta.roomType)||p.roomType||'Kitchen'; const active=id===activeLocalId;
+    return '<div style="display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--border)">'
+    +'<span style="flex:1;min-width:0"><span style="display:flex;align-items:center;gap:8px"><span style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(p.name||'Untitled design')+'</span>'+badge(rt)+(active?'<span style="color:var(--good);font-size:12px;white-space:nowrap">● open</span>':'')+'</span>'
+    +'<span class="mono" style="font-size:12px;color:var(--dim)">On this device</span></span>'
+    +(active?'':'<button class="btn" style="padding:7px 10px;font-size:13px" data-local-open="'+id+'">Open</button>')
+    +'<button class="btn" style="padding:7px 10px;font-size:13px" data-local-dup="'+id+'">Duplicate</button>'
+    +'<button class="btn '+(confirmLocalDelete===id?'btn-rust':'')+'" style="padding:7px 10px;font-size:13px" data-local-del="'+id+'">'+(confirmLocalDelete===id?'Tap again to delete':'Delete')+'</button>'
+    +'</div>'; }).join('');
+  el.querySelectorAll('[data-local-open]').forEach(b=>b.onclick=()=>switchLocalProject(b.dataset.localOpen));
+  el.querySelectorAll('[data-local-dup]').forEach(b=>b.onclick=()=>duplicateLocalProject(b.dataset.localDup));
+  el.querySelectorAll('[data-local-del]').forEach(b=>b.onclick=()=>deleteLocalProject(b.dataset.localDel));
 }
 
 function designSig(){ try{ return JSON.stringify({n:(document.getElementById('designName').value||'').trim(), d:design}); }catch(e){ return ''; } }
@@ -728,12 +923,13 @@ async function cloudDelete(row){
   refreshCloudList();
 }
 
-async function cloudNew(){
+async function cloudNew(nameArg, typeArg){
   const nameInput=document.getElementById('cloud-name');
-  const name=((nameInput&&nameInput.value)||'').trim()||'Untitled design';
-  design=emptyDesign();
+  const rawName=(nameArg!=null?nameArg:((nameInput&&nameInput.value)||''));
+  const name=rawName.trim()||'Untitled design';
+  design=newDesignFor(typeArg||'Kitchen');
   document.getElementById('designName').value=name;
-  selectedItemId=null; selectedOpeningId=null;
+  selectedItemId=null; selectedOpeningId=null; selectedWallId=null;
   currentCloudId=null; currentCloudName=null; lastSavedSig=null; saveError=false;
   knownDesignRef=design; lastChangeSig=''; lastChangeAt=Date.now();
   fitted=false; fit(); renderCanvas(); updateHeader();
@@ -744,31 +940,24 @@ async function cloudNew(){
 async function refreshCloudList(){
   if(!sb||!cloudUser) return;
   const r=await sb.from('kitchen_designs').select('id,name,data,created_by,updated_at').order('updated_at',{ascending:false});
-  const listEl=document.getElementById('cloudList');
+  const listEl=document.getElementById('projectList');
   if(r.error){ if(listEl) listEl.innerHTML='<p style="color:var(--rust);font-size:14px">Could not load the library: '+esc(r.error.message)+'</p>'; return; }
   cloudRows=r.data||[];
   renderCloudList();
 }
 
-function renderCloudList(){
-  const listEl=document.getElementById('cloudList'); if(!listEl) return;
-  if(!cloudRows.length){ listEl.innerHTML='<p style="color:var(--dim);font-size:14px">No saved designs yet — once a design saves, it shows up here for both of you.</p>'; return; }
-  listEl.innerHTML=cloudRows.map(r=>'<div style="display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--border)">'
-    +'<span style="flex:1;min-width:0"><span style="display:block;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(r.name||'Untitled design')+(r.id===currentCloudId?' <span style="color:var(--good);font-size:12px">● open</span>':'')+'</span>'
-    +'<span class="mono" style="font-size:12px;color:var(--dim)">'+esc(new Date(r.updated_at).toLocaleString())+'</span></span>'
-    +'<button class="btn" style="padding:7px 10px;font-size:13px" data-cloud-load="'+r.id+'">Load</button>'
-    +'<button class="btn" style="padding:7px 10px;font-size:13px" data-cloud-dup="'+r.id+'">Duplicate</button>'
-    +'<button class="btn '+(confirmCloudDelete===r.id?'btn-rust':'')+'" style="padding:7px 10px;font-size:13px" data-cloud-del="'+r.id+'">'+(confirmCloudDelete===r.id?'Tap again to delete':'Delete')+'</button>'
-    +'</div>').join('');
-  listEl.querySelectorAll('[data-cloud-load]').forEach(b=>b.onclick=()=>{ const r=cloudRows.find(x=>x.id===b.dataset.cloudLoad); if(r) cloudLoad(r); });
-  listEl.querySelectorAll('[data-cloud-dup]').forEach(b=>b.onclick=()=>{ const r=cloudRows.find(x=>x.id===b.dataset.cloudDup); if(r) cloudDuplicate(r); });
-  listEl.querySelectorAll('[data-cloud-del]').forEach(b=>b.onclick=()=>{ const r=cloudRows.find(x=>x.id===b.dataset.cloudDel); if(r) cloudDelete(r); });
-}
+function renderCloudList(){ renderProjectList(); }
 
 // ---------- Account panel ----------
 function renderAccount(){
   let h='<div style="display:flex;flex-direction:column;gap:18px">';
   h+='<div><h2 class="font-display" style="font-size:18px;margin:0">Account & cloud designs</h2><p style="color:var(--dim);line-height:1.55;margin:8px 0 0">Sign in to save designs to the shared library — Smitty and Christine both see every saved design, and changes save themselves. The planner also works without signing in: your sketch saves automatically on this device. Signing in is what adds the shared cloud library on top.</p></div>';
+  h+='<section style="border:1px solid var(--border);border-radius:10px;padding:14px">'
+    +'<div style="display:flex;align-items:center;justify-content:space-between"><h3 class="font-display" style="margin:0;font-size:15px">Projects</h3><button class="btn" id="proj-refresh" style="padding:6px 10px;font-size:13px">Refresh</button></div>'
+    +'<p style="font-size:13px;color:var(--dim);margin:6px 0 0;line-height:1.5">One project per room — kitchen, office, laundry… Each project has its own layout, pieces, and budget. '+(cloudUser?'These live in the shared cloud library.':'These live on this device; sign in below to share them in the cloud library.')+'</p>'
+    +'<div id="projectList"><p style="color:var(--dim);font-size:14px">Loading…</p></div>'
+    +'<div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap"><input id="proj-name" placeholder="New project name" style="flex:1;min-width:130px;border:1px solid var(--border);background:var(--bg);border-radius:7px;padding:9px 10px;font-size:16px"><select id="proj-type" style="border:1px solid var(--border);background:var(--bg);border-radius:7px;padding:9px">'+ROOM_TYPES.map(t=>'<option value="'+t+'">'+t+'</option>').join('')+'</select><button class="btn btn-primary" id="proj-create">Create</button></div>'
+    +'</section>';
   if(!sb){
     h+='<p style="color:var(--rust);line-height:1.5">Cloud is unreachable right now — the planner still works locally. Use “Download design file” in Keep &amp; Share to keep a copy.</p>';
   } else if(!cloudUser){
@@ -783,12 +972,13 @@ function renderAccount(){
       +'<p id="cloudSaveLine" style="font-size:13px;color:var(--dim);margin:6px 0 0"></p>'
       +'<div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap"><button class="btn btn-primary" id="cloud-save-now">Save now</button><button class="btn" id="cloud-new">New design</button><button class="btn" id="auth-signout">Sign out</button></div>'
       +'<div style="display:flex;gap:8px;margin-top:12px"><input id="cloud-name" placeholder="Design name" value="'+esc(currentCloudName||document.getElementById('designName').value||'')+'" style="flex:1;min-width:0;border:1px solid var(--border);background:var(--bg);border-radius:7px;padding:9px 10px;font-size:16px"><button class="btn" id="cloud-rename">Rename</button></div>'
-      +'<p id="cloudMsg" style="font-size:13px;color:var(--dim);margin:10px 0 0;min-height:18px"></p></div>'
-      +'<div><div style="display:flex;align-items:center;justify-content:space-between"><h3 class="font-display" style="margin:0;font-size:15px">Cloud designs</h3><button class="btn" id="cloud-refresh" style="padding:6px 10px;font-size:13px">Refresh</button></div>'
-      +'<div id="cloudList"><p style="color:var(--dim);font-size:14px">Loading…</p></div></div>';
+      +'<p id="cloudMsg" style="font-size:13px;color:var(--dim);margin:10px 0 0;min-height:18px"></p></div>';
   }
   h+='</div>';
   panel.innerHTML=h;
+  renderProjectList();
+  const projRefresh=document.getElementById('proj-refresh'); if(projRefresh) projRefresh.onclick=()=>{ if(cloudUser) refreshCloudList(); else renderProjectList(); };
+  const projCreate=document.getElementById('proj-create'); if(projCreate) projCreate.onclick=()=>{ const nm=((document.getElementById('proj-name').value||'').trim())||'Untitled project'; const tp=document.getElementById('proj-type').value; if(cloudUser){ cloudNew(nm,tp); } else { createLocalProject(nm,tp); } };
   if(sb&&!cloudUser){
     const doAuth=async(mode)=>{
       const email=(document.getElementById('auth-email').value||'').trim();
@@ -808,7 +998,6 @@ function renderAccount(){
     document.getElementById('auth-signout').onclick=async()=>{ try{ await sb.auth.signOut(); }catch(e){} };
     document.getElementById('cloud-save-now').onclick=async()=>{ const ok=await cloudSaveNow(); cloudMsg(ok?'Saved just now.':'Could not save — check your connection.'); };
     document.getElementById('cloud-new').onclick=()=>cloudNew();
-    document.getElementById('cloud-refresh').onclick=()=>refreshCloudList();
     document.getElementById('cloud-rename').onclick=async()=>{
       const v=(document.getElementById('cloud-name').value||'').trim();
       if(!v){ cloudMsg('Type a name first.'); return; }
@@ -854,21 +1043,49 @@ setInterval(()=>{
 },600);
 // Flush any pending edit to local storage the moment the page is closed/hidden.
 window.addEventListener('beforeunload',()=>{ const sig=designSig(); if(sig!==lastLocalSig) writeLocal(sig); });
-// Restore the on-device sketch (if any) so it survives refresh/close while signed out.
+// Restore the on-device library (or a legacy single sketch) so work survives refresh/close.
 (function restoreLocal(){
   let raw=null;
   try{ raw=localStorage.getItem(LOCAL_KEY); }catch(e){}
-  if(!raw) return;
-  try{
-    applyImportedDesign(JSON.parse(raw));
+  if(!raw){ localLib={activeId:null,projects:{}}; return; }
+  let parsed=null;
+  try{ parsed=JSON.parse(raw); }catch(e){ parsed=null; }
+  const finishRestore=()=>{
     const sig=designSig();
     lastLocalSig=sig; lastChangeSig=sig; lastChangeAt=Date.now(); localSaved=true;
     knownDesignRef=design;
     currentTab='add'; renderTabs(); renderPanel();
     setSaveStatus();
-  }catch(e){
+  };
+  if(parsed&&parsed.kind==='library'&&parsed.projects&&typeof parsed.projects==='object'&&Object.keys(parsed.projects).length){
+    localLib={activeId:parsed.activeId,projects:parsed.projects};
+    const ids=Object.keys(localLib.projects);
+    const order=[parsed.activeId,...ids.filter(x=>x!==parsed.activeId)];
+    for(const id of order){
+      try{ applyImportedDesign(localLib.projects[id]); activeLocalId=id; localLib.activeId=id; finishRestore(); return; }
+      catch(e){ /* try the next saved project */ }
+    }
+    localLib={activeId:null,projects:{}};
     try{ localStorage.removeItem(LOCAL_KEY); }catch(e2){}
+    return;
   }
+  if(parsed&&(parsed.data||parsed.room)){
+    // Legacy single-design payload → migrate into a one-project library.
+    const id=uid();
+    localLib={activeId:id,projects:{[id]:parsed}};
+    activeLocalId=id;
+    try{
+      applyImportedDesign(parsed);
+      persistLocalLibrary(); // rewrite in library format
+      finishRestore();
+    }catch(e){
+      localLib={activeId:null,projects:{}};
+      try{ localStorage.removeItem(LOCAL_KEY); }catch(e2){}
+    }
+    return;
+  }
+  localLib={activeId:null,projects:{}};
+  try{ localStorage.removeItem(LOCAL_KEY); }catch(e2){}
 })();
 </script>
 </body>
