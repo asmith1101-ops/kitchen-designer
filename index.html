@@ -498,6 +498,7 @@ function syncEditInputs(){
     if(path==='item.d') {const it=design.items.find(i=>i.id===selectedItemId); if(it) val=Math.round(it.dIn*10)/10}
     if(path==='room.w') val=design.room.widthIn; if(path==='room.d') val=design.room.depthIn;
     if(path==='opening.offset'){const op=design.openings.find(o=>o.id===selectedOpeningId); if(op) val=op.offsetIn}
+    if(path==='opening.width'){const op=design.openings.find(o=>o.id===selectedOpeningId); if(op) val=Math.round(op.widthIn*10)/10}
     if(val!=null) inp.value=val;
   });
 }
