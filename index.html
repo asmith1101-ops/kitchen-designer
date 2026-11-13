@@ -854,7 +854,7 @@ document.getElementById('designName').addEventListener('input',()=>{});
 
 // ---------- Header project switcher (dropdown + New project) ----------
 function projOptionsList(){
-  if(cloudUser) return cloudRows.map(r=>({id:r.id,name:r.name||'Untitled design',active:r.id===currentCloudId}));
+  if(cloudUser) return cloudRows.map(r=>({id:r.id,name:(r.name||'Untitled design')+(r.created_by&&r.created_by!==cloudUser.id?' (shared)':''),active:r.id===currentCloudId}));
   const ids=localLib?Object.keys(localLib.projects):[];
   return ids.map(id=>{ const p=localLib.projects[id]||{}; return {id:id, name:p.name||'Untitled project', active:id===activeLocalId}; });
 }
@@ -902,6 +902,7 @@ try{ if(window.supabase&&window.supabase.createClient) sb=window.supabase.create
 let cloudUser=null, currentCloudId=null, currentCloudName=null, cloudRows=[];
 let lastSavedSig=null, lastChangeSig='', lastChangeAt=0, savingNow=false, saveError=false, lastSaveErrAt=0;
 let confirmCloudDelete=null, knownDesignRef=design, cloudLoading=false;
+let shareRows=[], sharesAvailable=false, sharePanelFor=null, pendingCloudMsg='';
 
 // ---------- Local (on-device) persistence — works signed out ----------
 // Storage is a small library under the same key: {kind:'library', activeId, projects:{id: payload}}.
@@ -988,16 +989,31 @@ function renderProjectList(){
   const badge=rt=>'<span class="mono" style="font-size:11px;background:var(--surface-alt);border-radius:999px;padding:2px 8px;color:var(--dim);white-space:nowrap">'+esc(rt)+'</span>';
   if(cloudUser){
     if(!cloudRows.length){ el.innerHTML='<p style="color:var(--dim);font-size:14px">No projects in the cloud library yet — create one above, or just start sketching and it will save.</p>'; return; }
-    el.innerHTML=cloudRows.map(r=>'<div style="display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--border)">'
+    el.innerHTML=cloudRows.map(r=>{ const own=isOwnRow(r); const inc=own?null:incomingShareFor(r.id);
+      let row='<div style="padding:10px 0;border-bottom:1px solid var(--border)"><div style="display:flex;align-items:center;gap:8px">'
       +'<span style="flex:1;min-width:0"><span style="display:flex;align-items:center;gap:8px"><span style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(r.name||'Untitled design')+'</span>'+badge(rowRoomType(r))+(r.id===currentCloudId?'<span style="color:var(--good);font-size:12px;white-space:nowrap">● open</span>':'')+'</span>'
-      +'<span class="mono" style="font-size:12px;color:var(--dim)">'+esc(new Date(r.updated_at).toLocaleString())+'</span></span>'
+      +'<span class="mono" style="font-size:12px;color:var(--dim)">'+(own?esc(new Date(r.updated_at).toLocaleString()):'Shared with you · '+(inc&&inc.role==='edit'?'can edit':'view only'))+'</span></span>'
       +'<button class="btn" style="padding:7px 10px;font-size:13px" data-cloud-load="'+r.id+'">Open</button>'
+      +(own&&sharesAvailable?'<button class="btn" style="padding:7px 10px;font-size:13px" data-cloud-share="'+r.id+'">Share</button>':'')
       +'<button class="btn" style="padding:7px 10px;font-size:13px" data-cloud-dup="'+r.id+'">Duplicate</button>'
-      +'<button class="btn '+(confirmCloudDelete===r.id?'btn-rust':'')+'" style="padding:7px 10px;font-size:13px" data-cloud-del="'+r.id+'">'+(confirmCloudDelete===r.id?'Tap again to delete':'Delete')+'</button>'
-      +'</div>').join('');
+      +(own?'<button class="btn '+(confirmCloudDelete===r.id?'btn-rust':'')+'" style="padding:7px 10px;font-size:13px" data-cloud-del="'+r.id+'">'+(confirmCloudDelete===r.id?'Tap again to delete':'Delete')+'</button>':'')
+      +'</div>';
+      if(own&&sharePanelFor===r.id&&sharesAvailable){
+        const mine=sharesForDesign(r.id);
+        row+='<div style="margin-top:10px;background:var(--surface-alt);border-radius:8px;padding:10px 12px">'
+          +(mine.length?mine.map(s=>'<div style="display:flex;align-items:center;gap:8px;padding:3px 0"><span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;font-size:13px">'+esc(s.shared_with_email)+' <span style="color:var(--dim)">· '+(s.role==='edit'?'can edit':'view only')+'</span></span><button class="btn" style="padding:4px 8px;font-size:12px" data-share-remove="'+s.id+'">Remove</button></div>').join(''):'<p style="font-size:13px;color:var(--dim);margin:0 0 4px">Not shared with anyone yet.</p>')
+          +'<div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap"><input id="share-email-'+r.id+'" type="email" placeholder="person@example.com" style="flex:1;min-width:140px;border:1px solid var(--border);background:var(--bg);border-radius:7px;padding:8px 9px;font-size:16px"><select id="share-role-'+r.id+'" style="border:1px solid var(--border);background:var(--bg);border-radius:7px;padding:8px"><option value="view">Can view</option><option value="edit">Can edit</option></select><button class="btn btn-primary" style="padding:8px 12px;font-size:13px" data-share-add="'+r.id+'">Share</button></div>'
+          +'<p id="share-msg-'+r.id+'" style="font-size:12px;color:var(--dim);margin:6px 0 0;min-height:15px"></p>'
+          +'<p style="font-size:12px;color:var(--dim);margin:4px 0 0">They will see this project in their own library when they sign in with that email. View-only means their edits save as their own copy — your original stays untouched.</p>'
+          +'</div>';
+      }
+      return row+'</div>'; }).join('');
     el.querySelectorAll('[data-cloud-load]').forEach(b=>b.onclick=()=>{ const r=cloudRows.find(x=>x.id===b.dataset.cloudLoad); if(r){ cloudLoad(r); currentTab='account'; renderTabs(); renderPanel(); } });
     el.querySelectorAll('[data-cloud-dup]').forEach(b=>b.onclick=()=>{ const r=cloudRows.find(x=>x.id===b.dataset.cloudDup); if(r) cloudDuplicate(r); });
     el.querySelectorAll('[data-cloud-del]').forEach(b=>b.onclick=()=>{ const r=cloudRows.find(x=>x.id===b.dataset.cloudDel); if(r) cloudDelete(r); });
+    el.querySelectorAll('[data-cloud-share]').forEach(b=>b.onclick=()=>{ sharePanelFor=(sharePanelFor===b.dataset.cloudShare?null:b.dataset.cloudShare); renderProjectList(); });
+    el.querySelectorAll('[data-share-add]').forEach(b=>b.onclick=()=>addShare(b.dataset.shareAdd));
+    el.querySelectorAll('[data-share-remove]').forEach(b=>b.onclick=()=>removeShare(b.dataset.shareRemove));
     return;
   }
   const ids=localLib?Object.keys(localLib.projects):[];
@@ -1075,6 +1091,8 @@ function cloudLoad(row){
   currentCloudId=row.id; currentCloudName=row.name||null; knownDesignRef=design;
   lastSavedSig=designSig(); lastChangeSig=lastSavedSig; saveError=false;
   cloudLoading=false; setSaveStatus();
+  const inc=(cloudUser&&row.created_by!==cloudUser.id)?incomingShareFor(row.id):null;
+  if(inc&&inc.role!=='edit'){ currentCloudId=null; pendingCloudMsg='“'+(row.name||'Design')+'” was shared with you view-only — your edits will save as your own copy.'; setSaveStatus(); }
 }
 
 async function cloudDuplicate(row){
@@ -1115,10 +1133,33 @@ async function refreshCloudList(){
   const listEl=document.getElementById('projectList');
   if(r.error){ if(listEl) listEl.innerHTML='<p style="color:var(--rust);font-size:14px">Could not load the library: '+esc(r.error.message)+'</p>'; return; }
   cloudRows=r.data||[];
+  try{ const sr=await sb.from('design_shares').select('id,design_id,owner_id,shared_with_email,role,created_at'); if(sr.error){ sharesAvailable=false; shareRows=[]; } else { sharesAvailable=true; shareRows=sr.data||[]; } }catch(e){ sharesAvailable=false; shareRows=[]; }
   renderCloudList();
 }
 
 function renderCloudList(){ renderProjectList(); }
+
+// ---------- Sharing (design_shares) ----------
+function isOwnRow(r){ return !!(cloudUser&&r&&r.created_by===cloudUser.id); }
+function incomingShareFor(designId){ if(!cloudUser) return null; return shareRows.find(s=>s.design_id===designId&&s.owner_id!==cloudUser.id)||null; }
+function sharesForDesign(designId){ if(!cloudUser) return []; return shareRows.filter(s=>s.design_id===designId&&s.owner_id===cloudUser.id); }
+async function addShare(designId){
+  const emailEl=document.getElementById('share-email-'+designId), roleEl=document.getElementById('share-role-'+designId), msgEl=document.getElementById('share-msg-'+designId);
+  const email=((emailEl&&emailEl.value)||'').trim().toLowerCase();
+  const role=(roleEl&&roleEl.value)||'view';
+  const say=t=>{ if(msgEl) msgEl.textContent=t; };
+  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ say('Enter a valid email address.'); return; }
+  if(cloudUser&&email===(cloudUser.email||'').toLowerCase()){ say('That is your own email — you already own this project.'); return; }
+  say('Sharing…');
+  const r=await sb.from('design_shares').insert({design_id:designId, owner_id:cloudUser.id, shared_with_email:email, role:role}).select('id');
+  if(r.error){ say(/duplicate|unique/i.test(r.error.message||'')?'Already shared with that email — remove it first to change the role.':'Share failed: '+r.error.message); return; }
+  refreshCloudList();
+}
+async function removeShare(shareId){
+  const r=await sb.from('design_shares').delete().eq('id',shareId);
+  if(r.error){ cloudMsg('Could not remove that share: '+r.error.message); return; }
+  refreshCloudList();
+}
 
 // ---------- Account panel ----------
 function renderAccount(){
@@ -1181,6 +1222,7 @@ function renderAccount(){
       }
       cloudMsg('Renamed to “'+v+'”.');
     };
+    if(pendingCloudMsg){ cloudMsg(pendingCloudMsg); pendingCloudMsg=''; }
     refreshCloudList();
   }
 }
@@ -1190,7 +1232,7 @@ if(sb){
   sb.auth.onAuthStateChange((evt,session)=>{
     cloudUser=session?session.user:null;
     if(cloudUser){ lastChangeSig=designSig(); lastChangeAt=Date.now(); }
-    else { currentCloudId=null; currentCloudName=null; cloudRows=[]; }
+    else { currentCloudId=null; currentCloudName=null; cloudRows=[]; shareRows=[]; sharePanelFor=null; }
     setSaveStatus();
     if(currentTab==='account') renderPanel();
   });
