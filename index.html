@@ -433,11 +433,11 @@ svg.addEventListener('pointermove',e=>{
   if(drag.type==='item'){const item=design.items.find(i=>i.id===drag.id); if(!item)return; const r=itemRect(item); item.xIn=clamp(snap(inch.x-drag.grabDX),0,Math.max(0,W-r.w)); item.yIn=clamp(snap(inch.y-drag.grabDY),0,Math.max(0,D-r.d)); renderCanvas(); updateHeader(); syncEditInputs(); return}
   if(drag.type==='opening'){const op=design.openings.find(o=>o.id===drag.id); if(!op)return; const along=(op.wall==='north'||op.wall==='south')?inch.x:inch.y; const wallLen=(op.wall==='north'||op.wall==='south')?W:D; op.offsetIn=clamp(snap(along-drag.grabOff),0,Math.max(0,wallLen-op.widthIn)); renderCanvas(); syncEditInputs(); return}
   if(drag.type==='resize'){const item=design.items.find(i=>i.id===drag.id); if(!item||item.fixedSize)return; const r=itemRect(item); let ew=r.w,ed=r.d; if(drag.handle==='e'||drag.handle==='se') ew=clamp(snap05(inch.x-r.x),6,600); if(drag.handle==='s'||drag.handle==='se') ed=clamp(snap05(inch.y-r.y),6,600); const swapped=item.rotation%180!==0; item.wIn=swapped?ed:ew; item.dIn=swapped?ew:ed; renderCanvas(); updateHeader(); syncEditInputs(); return}
-  if(drag.type==='wallseg'){const w=(design.walls||[]).find(x=>x.id===drag.id); if(!w)return; const r=wallRect(w); w.xIn=clamp(snap(inch.x-drag.grabDX),0,Math.max(0,W-r.w)); w.yIn=clamp(snap(inch.y-drag.grabDY),0,Math.max(0,D-r.d)); renderCanvas(); syncEditInputs(); return}
+  if(drag.type==='wallseg'){const w=(design.walls||[]).find(x=>x.id===drag.id); if(!w)return; const r=wallRect(w); w.xIn=clamp(snap(inch.x-drag.grabDX),0,Math.max(0,W-r.w)); w.yIn=clamp(snap(inch.y-drag.grabDY),0,Math.max(0,D-r.d)); renderCanvas(); syncWallPanel(w); return}
   if(drag.type==='wallend'){const w=(design.walls||[]).find(x=>x.id===drag.id); if(!w)return;
     if(w.orient==='h'){ if(drag.end===1){ w.lengthIn=clamp(snap05(inch.x-w.xIn),12,1200); } else { const endX=w.xIn+w.lengthIn; const nx=clamp(snap05(inch.x),0,Math.max(0,endX-12)); w.lengthIn=endX-nx; w.xIn=nx; } }
     else { if(drag.end===1){ w.lengthIn=clamp(snap05(inch.y-w.yIn),12,1200); } else { const endY=w.yIn+w.lengthIn; const ny=clamp(snap05(inch.y),0,Math.max(0,endY-12)); w.lengthIn=endY-ny; w.yIn=ny; } }
-    renderCanvas(); syncEditInputs(); return}
+    renderCanvas(); syncWallPanel(w); return}
   if(drag.type==='wall'){if(drag.wall==='east') design.room.widthIn=clamp(snap(inch.x),48,720); else design.room.depthIn=clamp(snap(inch.y),48,720); renderCanvas(); updateHeader(); syncEditInputs(); return}
 });
 function endDrag(e){pointers.delete(e.pointerId); if(pointers.size===0) drag=null; else if(drag&&drag.type==='pinch') drag=null}
@@ -463,6 +463,11 @@ function syncEditInputs(){
     if(path==='opening.offset'){const op=design.openings.find(o=>o.id===selectedOpeningId); if(op) val=op.offsetIn}
     if(val!=null) inp.value=val;
   });
+}
+
+function syncWallPanel(w){
+  const li=document.getElementById('ed-wall-len'); if(li&&document.activeElement!==li) li.value=Math.round(w.lengthIn*10)/10;
+  const cap=document.getElementById('ed-wall-cap'); if(cap) cap.textContent='Runs '+(w.orient==='h'?'left → right':'top → bottom')+' · '+fmtIn(w.lengthIn)+' long';
 }
 
 // ---------- Helpers for panels ----------
@@ -620,7 +625,7 @@ function renderEdit(){
     panel.innerHTML=`<div style="display:flex;flex-direction:column;gap:16px"><h2 class="font-display" style="font-size:18px;margin:0">Interior wall</h2>
     <p style="font-size:14px;color:var(--dim);margin:0;line-height:1.5">Drag it on the plan to move it. Drag either orange end to stretch it, double-click it to flip it, or use the controls here.</p>
     <div class="grid2"><label class="field"><span>Length (in)</span><input id="ed-wall-len" type="number" inputmode="decimal" min="12" max="1200" value="${Math.round(wall.lengthIn*10)/10}"></label><label class="field"><span>Thickness (in)</span><input id="ed-wall-th" type="number" inputmode="decimal" min="2" max="12" value="${Math.round(wall.thicknessIn*10)/10}"></label></div>
-    <p class="mono" style="font-size:13px;color:var(--dim);margin:0">Runs ${wall.orient==='h'?'left → right':'top → bottom'} · ${fmtIn(wall.lengthIn)} long</p>
+    <p class="mono" id="ed-wall-cap" style="font-size:13px;color:var(--dim);margin:0">Runs ${wall.orient==='h'?'left → right':'top → bottom'} · ${fmtIn(wall.lengthIn)} long</p>
     <div style="display:flex;gap:8px;border-top:1px solid var(--border);padding-top:12px"><button class="btn" id="ed-wall-flip" style="flex:1">Flip orientation</button><button class="btn ${confirmWallDelete===wall.id?'btn-rust':''}" id="ed-wall-del" style="flex:1">${confirmWallDelete===wall.id?'Tap again to delete':'Delete wall'}</button></div>
     </div>`;
     document.getElementById('ed-wall-len').onchange=e=>{const v=parseFloat(e.target.value); if(isFinite(v)) wall.lengthIn=clamp(v,12,1200); renderCanvas(); renderPanel()};
