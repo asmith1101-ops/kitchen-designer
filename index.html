@@ -377,7 +377,7 @@ function renderCanvas(){
     if(drag.type==='wallend'||drag.type==='wallseg'){const w=(design.walls||[]).find(x=>x.id===drag.id); if(w){const r=wallRect(w); s+=labelTag(r.x,Math.max(-16,r.y-8.6),'Wall '+fmtIn(w.lengthIn))}}
   }
   // selected piece: dimension lines (width + depth) in amber, drawn clear of the room's own dims
-  if(selectedItemId&&!(typeof drag!=='undefined'&&drag)){
+  if(selectedItemId&&!(typeof drag!=='undefined'&&drag&&(drag.type==='resize'||drag.type==='wall'||drag.type==='wallseg'||drag.type==='wallend'))){
     const it=design.items.find(i=>i.id===selectedItemId);
     if(it){ const r=itemRect(it); const amber='#e8a33d', txt='fill="#f2c063" font-size="3.9" class="mono" style="paint-order:stroke" stroke="#0f2740" stroke-width="1.7"';
       const wy=r.y>=10?r.y-5:r.y+r.d+6.5;
