@@ -222,8 +222,11 @@ function normalizeDesign(d){
   d.walls=d.walls.filter(w=>w&&typeof w==='object').map(w=>{
     let len=Number(w.lengthIn); if(!isFinite(len)) len=48;
     let th=Number(w.thicknessIn); if(!isFinite(th)) th=4.5;
-    return {id:(w.id!=null&&w.id!=='')?String(w.id):uid(), xIn:isFinite(Number(w.xIn))?Number(w.xIn):0, yIn:isFinite(Number(w.yIn))?Number(w.yIn):0, lengthIn:clamp(len,6,1200), orient:w.orient==='v'?'v':'h', thicknessIn:clamp(th,2,12)};
+    return {id:(w.id!=null&&w.id!=='')?String(w.id):uid(), xIn:isFinite(Number(w.xIn))?Number(w.xIn):0, yIn:isFinite(Number(w.yIn))?Number(w.yIn):0, lengthIn:clamp(len,6,1200), orient:w.orient==='v'?'v':'h', thicknessIn:clamp(th,2,12), kind:w.kind==='divider'?'divider':'wall'};
   });
+  if(!d.room||typeof d.room!=='object') d.room={widthIn:168,depthIn:144,wallHeightIn:96};
+  if(!Array.isArray(d.room.openWalls)) d.room.openWalls=[];
+  d.room.openWalls=d.room.openWalls.filter(s=>['north','south','east','west'].includes(s));
   if(!d.meta||typeof d.meta!=='object') d.meta={};
   if(!ROOM_TYPES.includes(d.meta.roomType)) d.meta.roomType='Kitchen';
   if(Array.isArray(d.items)) for(const it of d.items){
@@ -276,7 +279,7 @@ function analyze(data){
   const room=data.room, items=data.items; const overlaps=[],outOfBounds=[],walkways=[];
   for(const it of items){const r=itemRect(it); if(r.x<-0.05||r.y<-0.05||r.x+r.w>room.widthIn+0.05||r.y+r.d>room.depthIn+0.05) outOfBounds.push(it)}
   const wallsArr=Array.isArray(data.walls)?data.walls:[];
-  for(const it of items){ if(it.layer!=='floor') continue; const r=itemRect(it); for(const w of wallsArr){ if(rectsOverlap(r,wallRect(w))) overlaps.push({aId:it.id,bId:w.id,aName:it.name,bName:'Interior wall'}); } }
+  for(const it of items){ if(it.layer!=='floor') continue; const r=itemRect(it); for(const w of wallsArr){ if(w.kind==='divider') continue; if(rectsOverlap(r,wallRect(w))) overlaps.push({aId:it.id,bId:w.id,aName:it.name,bName:'Interior wall'}); } }
   for(let i=0;i<items.length;i++){const a=items[i],ra=itemRect(a); for(let j=i+1;j<items.length;j++){const b=items[j],rb=itemRect(b);
     // Upper pieces (wall cabinets, cooktops, hoods) are meant to sit over floor pieces in plan view — never a collision.
     if(a.layer!==b.layer) continue;
@@ -290,11 +293,28 @@ function analyze(data){
   walkways.sort((p,q)=>p.gapIn-q.gapIn);
   const sink=items.find(i=>i.role==='sink'), cook=items.find(i=>i.role==='cooking'), fridge=items.find(i=>i.role==='fridge'); let triangle=null;
   if(sink&&cook&&fridge){const cs=centerOf(itemRect(sink)),cc=centerOf(itemRect(cook)),cf=centerOf(itemRect(fridge)); const sc=distFt(cs,cc),cf2=distFt(cc,cf),fs=distFt(cf,cs); const total=sc+cf2+fs; const legs=[sc,cf2,fs]; const ok=total>=13&&total<=26&&legs.every(l=>l>=4&&l<=9); triangle={legsFt:{sinkCook:sc,cookFridge:cf2,fridgeSink:fs},totalFt:total,ok,verdict: ok?"Inside the classic 13–26 ft work-triangle range, every leg 4–9 ft.": total<13?"Tighter than the classic 13 ft minimum — workable, but expect crowding with two cooks.": total>26?"Over the classic 26 ft maximum — lots of steps between sink, stove, and fridge.":"Total is in range, but one leg falls outside 4–9 ft."}}
+  const standards=[];
+  { // NKBA-style landing areas + dishwasher placement, measured from the plan
+    const counters=items.filter(i=>i.layer==='floor'&&!i.role);
+    const runAxis=(t,axis)=>{ const tr=itemRect(t); return [-1,1].map(dir=>{ let total=0; let edge=axis==='x'?(dir<0?tr.x:tr.x+tr.w):(dir<0?tr.y:tr.y+tr.d); const used=new Set();
+      for(let g=0;g<24;g++){ const nxt=counters.find(c=>{ if(used.has(c.id)) return false; const cr=itemRect(c); const ov=axis==='x'?(Math.min(tr.y+tr.d,cr.y+cr.d)-Math.max(tr.y,cr.y)):(Math.min(tr.x+tr.w,cr.x+cr.w)-Math.max(tr.x,cr.x)); const span=axis==='x'?Math.min(tr.d,cr.d):Math.min(tr.w,cr.w); if(ov<span*0.5) return false; const gap=axis==='x'?(dir<0?edge-(cr.x+cr.w):cr.x-edge):(dir<0?edge-(cr.y+cr.d):cr.y-edge); return gap>=-0.1&&gap<=1.6; });
+        if(!nxt) break; used.add(nxt.id); const nr=itemRect(nxt); total+=axis==='x'?nr.w:nr.d; edge=axis==='x'?(dir<0?nr.x:nr.x+nr.w):(dir<0?nr.y:nr.y+nr.d); }
+      return total; }); };
+    const land=(t,label,needA,needB,guide)=>{ if(!t) return; const ax=runAxis(t,'x'), ay=runAxis(t,'y'); const pair=ax[1]>=ay[1]?[Math.min(ax[0],ax[1]),Math.max(ax[0],ax[1])]:[Math.min(ay[0],ay[1]),Math.max(ay[0],ay[1])]; const lo=pair[0], hi=pair[1]; standards.push({ok:hi>=needA&&lo>=needB, title:label+' landing space', detail:'Counter run beside it: '+Math.round(hi)+'″ on one side, '+Math.round(lo)+'″ on the other. '+guide}); };
+    land(sink,'Sink',24,18,'NKBA guidance is at least 24″ on one side and 18″ on the other.');
+    land(cook,'Range / cooktop',15,12,'NKBA guidance is at least 15″ on one side and 12″ on the other.');
+    land(fridge,'Refrigerator',15,0,'NKBA guidance is at least 15″ beside it, or a counter directly across.');
+    const dw=items.find(i=>i.catalogId==='dishwasher-24'||/dishwasher/i.test(i.name||''));
+    if(dw&&sink){ const a2=itemRect(dw), b2=itemRect(sink); const dx=Math.max(0,Math.max(b2.x-(a2.x+a2.w), a2.x-(b2.x+b2.w))); const dy=Math.max(0,Math.max(b2.y-(a2.y+a2.d), a2.y-(b2.y+b2.d))); const gap=Math.hypot(dx,dy); standards.push({ok:gap<=36, title:'Dishwasher next to the sink', detail:'Edge-to-edge distance is about '+Math.round(gap)+'″. NKBA guidance: within 36″ of the sink.'}); }
+    const ow=(data.room&&Array.isArray(data.room.openWalls))?data.room.openWalls:[];
+    for(const side of ow) standards.push({ok:false, title:'Opened wall — '+side, detail:'Removing a wall can be structural: if it is load-bearing it needs a beam and usually a permit. Have your builder confirm before demo.'});
+    for(const op of (data.openings||[])) if(ow.includes(op.wall)) standards.push({ok:false, title:(op.kind||'Opening')+' on an opened wall', detail:'This '+(op.kind||'opening')+' sits on the '+op.wall+' wall you marked as removed. Move it to another wall or delete it.'});
+  }
   const b=computeBudget(data);
-  return{overlaps,outOfBounds,walkways,triangle,budgetCents:b.total,pricedCount:b.pricedCount,unpricedCount:b.unpricedCount,areaSqFt:(room.widthIn*room.depthIn)/144}
+  return{overlaps,outOfBounds,walkways,triangle,standards,budgetCents:b.total,pricedCount:b.pricedCount,unpricedCount:b.unpricedCount,areaSqFt:(room.widthIn*room.depthIn)/144}
 }
 function itemFromCatalog(e,x,y){return{id:uid(),catalogId:e.id,name:e.name,category:e.category,layer:e.layer,role:e.role,xIn:x,yIn:y,wIn:e.wIn,dIn:e.dIn,hIn:e.hIn,rotation:0,color:e.color,priceCents:null,productUrl:null,notes:null,fixedSize:!!e.fixed}}
-function emptyDesign(){return{room:{widthIn:168,depthIn:144,wallHeightIn:96},openings:[{id:uid(),wall:"north",offsetIn:54,widthIn:60,kind:"window"},{id:uid(),wall:"south",offsetIn:120,widthIn:36,kind:"door"}],items:[],walls:[],meta:{roomType:"Kitchen"},budget:{target:0,custom:[]}}}
+function emptyDesign(){return{room:{widthIn:168,depthIn:144,wallHeightIn:96,openWalls:[]},openings:[{id:uid(),wall:"north",offsetIn:54,widthIn:60,kind:"window"},{id:uid(),wall:"south",offsetIn:120,widthIn:36,kind:"door"}],items:[],walls:[],meta:{roomType:"Kitchen"},budget:{target:0,custom:[]}}}
 function findSpot(data,w,d,layer){const W=data.room.widthIn,D=data.room.depthIn,others=data.items.filter(i=>i.layer===layer); for(let y=0;y+d<=D;y+=6) for(let x=0;x+w<=W;x+=6){const r={x,y,w,d}; if(!others.some(o=>rectsOverlap(r,itemRect(o),0))) return{x,y}} return{x:Math.max(0,Math.round((W-w)/2)),y:Math.max(0,Math.round((D-d)/2))}}
 function runTemplate(items,data,entryId,x,y,rot){rot=rot||0; const e=CATALOG.find(c=>c.id===entryId); if(!e)return; const it=itemFromCatalog(e,x,y); it.rotation=rot; items.push(it)}
 function layoutTemplate(kind,data){const W=data.room.widthIn,D=data.room.depthIn,items=[]; runTemplate(items,data,"fridge-36",0,0); runTemplate(items,data,"base-24",36,0); runTemplate(items,data,"sink-33",60,0); runTemplate(items,data,"dishwasher-24",93,0); runTemplate(items,data,"base-24",117,0); runTemplate(items,data,"wall-30",60,0); runTemplate(items,data,"wall-30",117,0);
@@ -344,7 +364,11 @@ function renderCanvas(){
   s+=`<g stroke="var(--bp-dim)" stroke-width="0.4"><line x1="0" y1="-7" x2="${W}" y2="-7"/><line x1="0" y1="-9" x2="0" y2="-5"/><line x1="${W}" y1="-9" x2="${W}" y2="-5"/><line x1="-7" y1="0" x2="-7" y2="${D}"/><line x1="-9" y1="0" x2="-5" y2="0"/><line x1="-9" y1="${D}" x2="-5" y2="${D}"/></g>`;
   s+=`<text x="${W/2}" y="-9.5" text-anchor="middle" font-size="4.4" fill="var(--bp-dim)" class="mono">${fmtIn(W)}</text>`;
   s+=`<text x="-10" y="${D/2}" text-anchor="middle" font-size="4.4" fill="var(--bp-dim)" transform="rotate(-90 -10 ${D/2})">${fmtIn(D)}</text>`;
-  s+=`<rect x="0" y="0" width="${W}" height="${D}" fill="rgba(220,235,247,0.045)" stroke="var(--bp-line)" stroke-width="1.5"/>`;
+  s+=`<rect x="0" y="0" width="${W}" height="${D}" fill="rgba(220,235,247,0.045)"/>`;
+  { const ow=design.room.openWalls||[]; const sl=(x1,y1,x2,y2,side)=>ow.includes(side)?`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="rgba(220,235,247,0.38)" stroke-width="0.9" stroke-dasharray="4 3"/>`:`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="var(--bp-line)" stroke-width="1.5"/>`;
+    s+=sl(0,0,W,0,'north')+sl(W,0,W,D,'east')+sl(0,D,W,D,'south')+sl(0,0,0,D,'west');
+    const lbl=(x,y,side)=>{ if(ow.includes(side)) s+=`<text x="${x}" y="${y}" text-anchor="middle" font-size="3.4" fill="rgba(220,235,247,0.55)" pointer-events="none" class="mono">OPEN</text>` };
+    lbl(W/2,6,'north'); lbl(W/2,D-3,'south'); lbl(4.5,D/2,'west'); lbl(W-4.5,D/2,'east'); }
   s+=`<rect x="${W-2.2}" y="0" width="4.4" height="${D}" fill="transparent" data-type="wall" data-wall="east" style="cursor:ew-resize"/><rect x="0" y="${D-2.2}" width="${W}" height="4.4" fill="transparent" data-type="wall" data-wall="south" style="cursor:ns-resize"/><rect x="-2.2" y="0" width="4.4" height="${D}" fill="transparent" data-type="wall" data-wall="west" style="cursor:ew-resize"/><rect x="0" y="-2.2" width="${W}" height="4.4" fill="transparent" data-type="wall" data-wall="north" style="cursor:ns-resize"/>`;
   // items
   const ordered=[...design.items.filter(i=>i.layer==='floor'),...design.items.filter(i=>i.layer==='upper')];
@@ -364,7 +388,7 @@ function renderCanvas(){
   if(typeof drag!=='undefined'&&drag){
     const labelTag=(x,y,txt)=>{const wdt=Math.max(15,txt.length*2.3+3); return `<g pointer-events="none"><rect x="${x}" y="${y}" width="${wdt}" height="6.6" rx="1.4" fill="#0f2740" stroke="#e8a33d" stroke-width="0.35"/><text x="${x+1.8}" y="${y+4.7}" font-size="3.7" fill="#dcebf7" class="mono">${txt}</text></g>`};
     if(drag.type==='resize'){const it=design.items.find(i=>i.id===drag.id); if(it){const r=itemRect(it); s+=labelTag(r.x,Math.max(-16,r.y-8.6),`${Math.round(r.w*2)/2}″ × ${Math.round(r.d*2)/2}″`)}}
-    if(drag.type==='wallend'||drag.type==='wallseg'){const w=(design.walls||[]).find(x=>x.id===drag.id); if(w){const r=wallRect(w); s+=labelTag(r.x,Math.max(-16,r.y-8.6),'Wall '+fmtIn(w.lengthIn))}}
+    if(drag.type==='wallend'||drag.type==='wallseg'){const w=(design.walls||[]).find(x=>x.id===drag.id); if(w){const r=wallRect(w); s+=labelTag(r.x,Math.max(-16,r.y-8.6),(w.kind==='divider'?'Divider ':'Wall ')+fmtIn(w.lengthIn))}}
   }
   // selected piece: dimension lines (width + depth) in amber, drawn clear of the room's own dims
   if(selectedItemId&&!(typeof drag!=='undefined'&&drag&&(drag.type==='resize'||drag.type==='wall'||drag.type==='wallseg'||drag.type==='wallend'))){
@@ -387,11 +411,13 @@ function renderCanvas(){
       const ocx=horiz?op.offsetIn+op.widthIn/2:wallX, ocy=horiz?wallY:op.offsetIn+op.widthIn/2, oLy=op.wall==='north'?ocy+9.5:op.wall==='south'?ocy-6.5:ocy, oLx=op.wall==='west'?ocx+6.5:op.wall==='east'?ocx-6.5:ocx, oAnch=op.wall==='west'?'start':op.wall==='east'?'end':'middle';
       s+=`<text x="${oLx}" y="${oLy}" text-anchor="${oAnch}" font-size="3.9" fill="#f2c063" class="mono" style="paint-order:stroke" stroke="#0f2740" stroke-width="1.7" pointer-events="none">${op.kind} ${fmtIn(op.widthIn)}</text>`; }
     if(horiz) s+=`<rect x="${op.offsetIn}" y="${wallY-3.4}" width="${op.widthIn}" height="6.8" fill="transparent" data-type="opening" data-id="${op.id}" style="cursor:ew-resize"/>`; else s+=`<rect x="${wallX-3.4}" y="${op.offsetIn}" width="6.8" height="${op.widthIn}" fill="transparent" data-type="opening" data-id="${op.id}" style="cursor:ns-resize"/>`;
+    if(selected){ const hx1=horiz?op.offsetIn:wallX, hy1=horiz?wallY:op.offsetIn, hx2=horiz?op.offsetIn+op.widthIn:wallX, hy2=horiz?wallY:op.offsetIn+op.widthIn, cur=horiz?'ew-resize':'ns-resize'; s+=`<g fill="#e8a33d" stroke="#16324f" stroke-width="0.4"><circle cx="${hx1}" cy="${hy1}" r="6" fill="transparent" stroke="none" data-type="opresize" data-id="${op.id}" data-end="0" style="cursor:${cur}"/><circle cx="${hx2}" cy="${hy2}" r="6" fill="transparent" stroke="none" data-type="opresize" data-id="${op.id}" data-end="1" style="cursor:${cur}"/><circle cx="${hx1}" cy="${hy1}" r="2.6" data-type="opresize" data-id="${op.id}" data-end="0" style="cursor:${cur}"/><circle cx="${hx2}" cy="${hy2}" r="2.6" data-type="opresize" data-id="${op.id}" data-end="1" style="cursor:${cur}"/></g>`; }
   }
   // interior wall segments
   for(const w of (design.walls||[])){
     const r=wallRect(w), selW=selectedWallId===w.id;
-    s+=`<g data-type="wallseg" data-id="${w.id}" style="cursor:move"><rect x="${w.orient==='h'?r.x-2:r.x-8}" y="${w.orient==='h'?r.y-8:r.y-2}" width="${w.orient==='h'?r.w+4:r.w+16}" height="${w.orient==='h'?r.d+16:r.d+4}" fill="transparent"/><rect x="${r.x}" y="${r.y}" width="${r.w}" height="${r.d}" fill="rgba(220,235,247,0.88)" stroke="${selW?'#e8a33d':'var(--bp-line)'}" stroke-width="${selW?1.1:0.7}"/><line x1="${r.x+r.w/2}" y1="${r.y}" x2="${r.x+r.w/2}" y2="${r.y+r.d}" stroke="var(--bp-dim)" stroke-width="0.3" opacity="0.5" style="display:${w.orient==='h'?'none':'block'}"/><line x1="${r.x}" y1="${r.y+r.d/2}" x2="${r.x+r.w}" y2="${r.y+r.d/2}" stroke="var(--bp-dim)" stroke-width="0.3" opacity="0.5" style="display:${w.orient==='v'?'none':'block'}"/></g>`;
+    const vis=w.kind==='divider'?'<line x1="'+(w.orient==='h'?r.x:r.x+r.w/2)+'" y1="'+(w.orient==='h'?r.y+r.d/2:r.y)+'" x2="'+(w.orient==='h'?r.x+r.w:r.x+r.w/2)+'" y2="'+(w.orient==='h'?r.y+r.d/2:r.y+r.d)+'" stroke="'+(selW?'#e8a33d':'rgba(242,192,99,0.8)')+'" stroke-width="'+(selW?0.9:0.6)+'" stroke-dasharray="3.2 2.2"/>':'<rect x="'+r.x+'" y="'+r.y+'" width="'+r.w+'" height="'+r.d+'" fill="rgba(220,235,247,0.88)" stroke="'+(selW?'#e8a33d':'var(--bp-line)')+'" stroke-width="'+(selW?1.1:0.7)+'"/><line x1="'+(r.x+r.w/2)+'" y1="'+r.y+'" x2="'+(r.x+r.w/2)+'" y2="'+(r.y+r.d)+'" stroke="var(--bp-dim)" stroke-width="0.3" opacity="0.5" style="display:'+(w.orient==='h'?'none':'block')+'"/><line x1="'+r.x+'" y1="'+(r.y+r.d/2)+'" x2="'+(r.x+r.w)+'" y2="'+(r.y+r.d/2)+'" stroke="var(--bp-dim)" stroke-width="0.3" opacity="0.5" style="display:'+(w.orient==='v'?'none':'block')+'"/>';
+    s+=`<g data-type="wallseg" data-id="${w.id}" style="cursor:move"><rect x="${w.orient==='h'?r.x-2:r.x-8}" y="${w.orient==='h'?r.y-8:r.y-2}" width="${w.orient==='h'?r.w+4:r.w+16}" height="${w.orient==='h'?r.d+16:r.d+4}" fill="transparent"/>${vis}</g>`;
     if(selW){
       const e0=w.orient==='h'?{x:r.x,y:r.y+r.d/2}:{x:r.x+r.w/2,y:r.y};
       const e1=w.orient==='h'?{x:r.x+r.w,y:r.y+r.d/2}:{x:r.x+r.w/2,y:r.y+r.d};
@@ -421,6 +447,7 @@ svg.addEventListener('pointerdown',e=>{
   const type=t.dataset.type;
   if(type==='item'){const item=design.items.find(i=>i.id===t.dataset.id); if(!item)return; selectedItemId=item.id; selectedOpeningId=null; selectedWallId=null; currentTab='edit'; const inch=toInches(e.clientX,e.clientY); drag={type:'item',id:item.id,grabDX:inch.x-item.xIn,grabDY:inch.y-item.yIn}; renderTabs(); renderCanvas(); renderPanel(); e.stopPropagation(); return}
   if(type==='opening'){const op=design.openings.find(o=>o.id===t.dataset.id); if(!op)return; selectedOpeningId=op.id; selectedItemId=null; selectedWallId=null; currentTab='edit'; const inch=toInches(e.clientX,e.clientY); const along=(op.wall==='north'||op.wall==='south')?inch.x:inch.y; drag={type:'opening',id:op.id,grabOff:along-op.offsetIn}; renderTabs(); renderCanvas(); renderPanel(); e.stopPropagation(); return}
+  if(type==='opresize'){drag={type:'opresize',id:t.dataset.id,end:+t.dataset.end}; selectedOpeningId=t.dataset.id; selectedItemId=null; selectedWallId=null; e.stopPropagation(); return}
   if(type==='walldel'){const w=(design.walls||[]).find(x=>x.id===t.dataset.id); if(w){design.walls=design.walls.filter(x=>x.id!==w.id); selectedWallId=null; renderCanvas(); updateHeader(); renderPanel(); pushHistory();} e.stopPropagation(); return}
   if(type==='wallseg'){const w=(design.walls||[]).find(x=>x.id===t.dataset.id); if(!w)return; selectedWallId=w.id; selectedItemId=null; selectedOpeningId=null; currentTab='edit'; const inch=toInches(e.clientX,e.clientY); drag={type:'wallseg',id:w.id,grabDX:inch.x-w.xIn,grabDY:inch.y-w.yIn}; renderTabs(); renderCanvas(); renderPanel(); e.stopPropagation(); return}
   if(type==='wallend'){drag={type:'wallend',id:t.dataset.id,end:+t.dataset.end}; e.stopPropagation(); return}
@@ -435,6 +462,7 @@ svg.addEventListener('pointermove',e=>{
   if(drag.type==='item'){const item=design.items.find(i=>i.id===drag.id); if(!item)return; const r=itemRect(item); item.xIn=clamp(snap(inch.x-drag.grabDX),0,Math.max(0,W-r.w)); item.yIn=clamp(snap(inch.y-drag.grabDY),0,Math.max(0,D-r.d)); renderCanvas(); updateHeader(); syncEditInputs(); return}
   if(drag.type==='opening'){const op=design.openings.find(o=>o.id===drag.id); if(!op)return; const along=(op.wall==='north'||op.wall==='south')?inch.x:inch.y; const wallLen=(op.wall==='north'||op.wall==='south')?W:D; op.offsetIn=clamp(snap(along-drag.grabOff),0,Math.max(0,wallLen-op.widthIn)); renderCanvas(); syncEditInputs(); return}
   if(drag.type==='resize'){const item=design.items.find(i=>i.id===drag.id); if(!item||item.fixedSize)return; const r=itemRect(item); let ew=r.w,ed=r.d; if(drag.handle==='e'||drag.handle==='se') ew=clamp(snap05(inch.x-r.x),6,600); if(drag.handle==='s'||drag.handle==='se') ed=clamp(snap05(inch.y-r.y),6,600); const swapped=item.rotation%180!==0; item.wIn=swapped?ed:ew; item.dIn=swapped?ew:ed; renderCanvas(); updateHeader(); syncEditInputs(); return}
+  if(drag.type==='opresize'){const op=design.openings.find(o=>o.id===drag.id); if(!op)return; const horiz=op.wall==='north'||op.wall==='south'; const wallLen=horiz?W:D; const along=horiz?inch.x:inch.y; if(drag.end===1){ op.widthIn=clamp(snap05(along-op.offsetIn),12,Math.max(12,wallLen-op.offsetIn)); } else { const endPos=op.offsetIn+op.widthIn; const no=clamp(snap05(along),0,Math.max(0,endPos-12)); op.widthIn=endPos-no; op.offsetIn=no; } renderCanvas(); syncEditInputs(); return}
   if(drag.type==='wallseg'){const w=(design.walls||[]).find(x=>x.id===drag.id); if(!w)return; const r=wallRect(w); w.xIn=clamp(snap(inch.x-drag.grabDX),0,Math.max(0,W-r.w)); w.yIn=clamp(snap(inch.y-drag.grabDY),0,Math.max(0,D-r.d)); renderCanvas(); syncWallPanel(w); return}
   if(drag.type==='wallend'){const w=(design.walls||[]).find(x=>x.id===drag.id); if(!w)return;
     if(w.orient==='h'){ if(drag.end===1){ w.lengthIn=clamp(snap05(inch.x-w.xIn),12,1200); } else { const endX=w.xIn+w.lengthIn; const nx=clamp(snap05(inch.x),0,Math.max(0,endX-12)); w.lengthIn=endX-nx; w.xIn=nx; } }
@@ -544,7 +572,7 @@ function renderAdd(){
   const matches=e=>inScope(e)&&(!q||e.name.toLowerCase().includes(q)||e.blurb.toLowerCase().includes(q)||e.category.toLowerCase().includes(q));
   let h=`<input class="search-input" id="searchBox" type="search" placeholder="Search cabinets, appliances…" value="${esc(searchQuery)}" aria-label="Search">`;
   h+=`<div style="display:flex;gap:8px;align-items:center;margin-top:10px"><span class="label">Show</span><select id="catScope" style="border:1px solid var(--border);background:var(--bg);border-radius:6px;padding:7px"><option value="room" ${catalogScope==='room'?'selected':''}>${esc(roomType)} pieces</option><option value="all" ${catalogScope==='all'?'selected':''}>All pieces</option></select></div>`;
-  h+=`<section style="margin-top:18px;border:1px solid var(--border);border-radius:10px;padding:12px"><h2 class="font-display" style="font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--dim);margin:0">Room structure</h2><p style="font-size:13px;color:var(--dim);margin:6px 0 0;line-height:1.5">Interior wall segments are yours to shape: drag them around, stretch them from either end, flip them, delete them.</p><button class="btn btn-primary" id="addWallBtn" style="width:100%;margin-top:10px">+ Add a wall segment</button></section>`;
+  h+=`<section style="margin-top:18px;border:1px solid var(--border);border-radius:10px;padding:12px"><h2 class="font-display" style="font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--dim);margin:0">Room structure</h2><p style="font-size:13px;color:var(--dim);margin:6px 0 0;line-height:1.5">Interior wall segments are yours to shape: drag them around, stretch them from either end, flip them, delete them. A floor divider is just a dashed mark — handy to show where the kitchen gives way to the next room. To open up a whole side of the room, use the Room tab.</p><button class="btn btn-primary" id="addWallBtn" style="width:100%;margin-top:10px">+ Add a wall segment</button><button class="btn" id="addDividerBtn" style="width:100%;margin-top:8px">+ Add a floor divider mark</button></section>`;
   for(const cat of CATEGORIES){const entries=CATALOG.filter(e=>e.category===cat&&matches(e)); if(!entries.length) continue;
     h+=`<section style="margin-top:20px"><h2 class="font-display" style="font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--dim);margin:0">${cat}</h2>`;
     for(const e of entries) h+=`<div class="cat-item"><span class="swatch" style="background:${e.color}"></span><span style="flex:1;min-width:0"><span style="display:block;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${e.name}${e.fixed?' <span class="mono" style="font-size:11px;color:var(--dim)">fixed size</span>':''}</span><span class="mono" style="font-size:12px;color:var(--dim)">${e.wIn}×${e.dIn}×${e.hIn}″ · ${e.blurb}</span></span><button class="btn btn-primary" style="padding:7px 14px" data-add="${e.id}">Add</button></div>`;
@@ -575,6 +603,7 @@ function renderAdd(){
   panel.querySelectorAll('[data-add]').forEach(b=>b.onclick=()=>{const e=CATALOG.find(c=>c.id===b.dataset.add); const spot=findSpot(design,e.wIn,e.dIn,e.layer); const it=itemFromCatalog(e,spot.x,spot.y); design.items.push(it); selectedItemId=it.id; selectedOpeningId=null; selectedWallId=null; currentTab='edit'; renderTabs(); renderCanvas(); updateHeader(); renderPanel(); pushHistory();});
   const scopeSel=document.getElementById('catScope'); if(scopeSel) scopeSel.onchange=()=>{catalogScope=scopeSel.value; renderPanel()};
   const awb=document.getElementById('addWallBtn'); if(awb) awb.onclick=()=>{const w={id:uid(),xIn:clamp(Math.round(design.room.widthIn/2-24),0,Math.max(0,design.room.widthIn-48)),yIn:clamp(Math.round(design.room.depthIn/2),0,Math.max(0,design.room.depthIn-5)),lengthIn:48,orient:'h',thicknessIn:4.5}; if(!Array.isArray(design.walls)) design.walls=[]; design.walls.push(w); selectedWallId=w.id; selectedItemId=null; selectedOpeningId=null; currentTab='edit'; renderTabs(); renderCanvas(); updateHeader(); renderPanel(); pushHistory();};
+  const adb=document.getElementById('addDividerBtn'); if(adb) adb.onclick=()=>{const w={id:uid(),kind:'divider',xIn:clamp(Math.round(design.room.widthIn/2-24),0,Math.max(0,design.room.widthIn-48)),yIn:clamp(Math.round(design.room.depthIn/2),0,Math.max(0,design.room.depthIn-5)),lengthIn:48,orient:'h',thicknessIn:4.5}; if(!Array.isArray(design.walls)) design.walls=[]; design.walls.push(w); selectedWallId=w.id; selectedItemId=null; selectedOpeningId=null; currentTab='edit'; renderTabs(); renderCanvas(); updateHeader(); renderPanel(); pushHistory();};
   const oc=document.getElementById('openCustom'); if(oc) oc.onclick=()=>{customOpen=true; renderPanel()};
   const cc=document.getElementById('cp-cancel'); if(cc) cc.onclick=()=>{customOpen=false; renderPanel()};
   // Mark dimension fields once the user types in them, so Fetch never overwrites their numbers.
@@ -654,14 +683,14 @@ function renderEdit(){
     return;
   }
   if(wall){
-    panel.innerHTML=`<div style="display:flex;flex-direction:column;gap:16px"><h2 class="font-display" style="font-size:18px;margin:0">Interior wall</h2>
-    <p style="font-size:14px;color:var(--dim);margin:0;line-height:1.5">Drag it on the plan to move it. Drag either orange end to stretch it, double-click it to flip it, or use the controls here.</p>
-    <div class="grid2"><label class="field"><span>Length (in)</span><input id="ed-wall-len" type="number" inputmode="decimal" min="12" max="1200" value="${Math.round(wall.lengthIn*10)/10}"></label><label class="field"><span>Thickness (in)</span><input id="ed-wall-th" type="number" inputmode="decimal" min="2" max="12" value="${Math.round(wall.thicknessIn*10)/10}"></label></div>
+    panel.innerHTML=`<div style="display:flex;flex-direction:column;gap:16px"><h2 class="font-display" style="font-size:18px;margin:0">${wall.kind==='divider'?'Room divider — floor mark':'Interior wall'}</h2>
+    <p style="font-size:14px;color:var(--dim);margin:0;line-height:1.5">${wall.kind==='divider'?'A dashed mark on the floor — it shows where one room gives way to the next. It is not a wall: nothing gets built, and the checks ignore it. Drag it to move it, drag either orange end to stretch it.':'Drag it on the plan to move it. Drag either orange end to stretch it, double-click it to flip it, or use the controls here.'}</p>
+    <div class="grid2"><label class="field"><span>Length (in)</span><input id="ed-wall-len" type="number" inputmode="decimal" min="12" max="1200" value="${Math.round(wall.lengthIn*10)/10}"></label>${wall.kind==='divider'?'':`<label class="field"><span>Thickness (in)</span><input id="ed-wall-th" type="number" inputmode="decimal" min="2" max="12" value="${Math.round(wall.thicknessIn*10)/10}"></label>`}</div>
     <p class="mono" id="ed-wall-cap" style="font-size:13px;color:var(--dim);margin:0">Runs ${wall.orient==='h'?'left → right':'top → bottom'} · ${fmtIn(wall.lengthIn)} long</p>
-    <div style="display:flex;gap:8px;border-top:1px solid var(--border);padding-top:12px"><button class="btn" id="ed-wall-flip" style="flex:1">Flip orientation</button><button class="btn ${confirmWallDelete===wall.id?'btn-rust':''}" id="ed-wall-del" style="flex:1">${confirmWallDelete===wall.id?'Tap again to delete':'Delete wall'}</button></div>
+    <div style="display:flex;gap:8px;border-top:1px solid var(--border);padding-top:12px"><button class="btn" id="ed-wall-flip" style="flex:1">Flip orientation</button><button class="btn ${confirmWallDelete===wall.id?'btn-rust':''}" id="ed-wall-del" style="flex:1">${confirmWallDelete===wall.id?'Tap again to delete':(wall.kind==='divider'?'Delete divider':'Delete wall')}</button></div>
     </div>`;
     document.getElementById('ed-wall-len').onchange=e=>{const v=parseFloat(e.target.value); if(isFinite(v)) wall.lengthIn=clamp(v,12,1200); renderCanvas(); renderPanel(); pushHistory()};
-    document.getElementById('ed-wall-th').onchange=e=>{const v=parseFloat(e.target.value); if(isFinite(v)) wall.thicknessIn=clamp(v,2,12); renderCanvas(); renderPanel(); pushHistory()};
+    const thEl=document.getElementById('ed-wall-th'); if(thEl) thEl.onchange=e=>{const v=parseFloat(e.target.value); if(isFinite(v)) wall.thicknessIn=clamp(v,2,12); renderCanvas(); renderPanel(); pushHistory()};
     document.getElementById('ed-wall-flip').onclick=()=>{flipWall(wall); renderCanvas(); renderPanel(); pushHistory()};
     document.getElementById('ed-wall-del').onclick=()=>{if(confirmWallDelete!==wall.id){confirmWallDelete=wall.id; renderPanel(); return} confirmWallDelete=null; design.walls=design.walls.filter(w=>w.id!==wall.id); selectedWallId=null; renderCanvas(); updateHeader(); renderPanel(); pushHistory()};
     return;
@@ -688,16 +717,29 @@ function renderRoom(){
     <div class="grid3" style="margin-top:12px">${numField('Width (in)','room.w',design.room.widthIn,48,720)}${numField('Depth (in)','room.d',design.room.depthIn,48,720)}${numField('Ceiling (in)','room.h',design.room.wallHeightIn,48,240)}</div>
     <p class="mono" style="font-size:13px;color:var(--dim)">${fmtIn(design.room.widthIn)} × ${fmtIn(design.room.depthIn)} · ceiling ${fmtIn(design.room.wallHeightIn)} · ${Math.round(design.room.widthIn*design.room.depthIn/144)} sq ft</p>
     <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px">${ROOM_PRESETS.map(p=>`<button class="btn" data-preset="${p.w},${p.d}" style="padding:7px 12px;font-size:13px;${design.room.widthIn===p.w&&design.room.depthIn===p.d?'border-color:var(--oak);background:var(--surface-alt)':''}">${p.label}′</button>`).join('')}</div>
-    <p style="font-size:13px;color:var(--dim)">You can also drag the right or bottom wall on the plan itself.</p></section>
+    <p style="font-size:13px;color:var(--dim)">You can also drag any edge of the room on the plan itself.</p></section>
+    <section><h2 class="font-display" style="font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--dim);margin:0">Open plan — remove a wall</h2>
+    <p style="font-size:13px;color:var(--dim);margin:6px 0 0;line-height:1.5">Opening the kitchen into the next room? Mark a side as opened and the plan draws it as a dashed line — the room size stays the same. Your builder still has to confirm the wall isn't load-bearing.</p>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-top:12px">${['north','south','west','east'].map(sd=>{const open=(design.room.openWalls||[]).includes(sd); return `<button class="btn" data-openwall="${sd}" style="display:flex;justify-content:space-between;width:100%"><span>${wallName(sd)} wall</span><span class="mono" style="font-size:12px;color:${open?'var(--oak)':'var(--dim)'}">${open?'OPENED — tap to restore':'In place — tap to open'}</span></button>`}).join('')}</div></section>
     <section><h2 class="font-display" style="font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--dim);margin:0">Doors & windows</h2>
     ${design.openings.length===0?`<p style="font-size:14px;color:var(--dim)">No openings yet — add the doors and windows your room actually has.</p>`:''}
     <div>${design.openings.map(o=>`<button data-opening="${o.id}" style="display:flex;width:100%;justify-content:space-between;padding:10px 0;border:none;border-bottom:1px solid var(--border);background:transparent;text-align:left"><span style="font-weight:600;text-transform:capitalize">${o.kind==='cased'?'Cased opening':o.kind} · ${wallName(o.wall)} wall</span><span class="mono" style="font-size:13px;color:var(--dim)">${Math.round(o.widthIn)}″ wide at ${Math.round(o.offsetIn)}″</span></button>`).join('')}</div>
     <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px"><button class="btn btn-primary" data-addop="door">+ Door</button><button class="btn btn-primary" data-addop="window">+ Window</button><button class="btn btn-primary" data-addop="cased">+ Cased opening</button></div></section>
   </div>`;
-  panel.querySelectorAll('[data-preset]').forEach(b=>b.onclick=()=>{const [w,d]=b.dataset.preset.split(',').map(Number); design.room.widthIn=w; design.room.depthIn=d; fit(); renderPanel()});
+  panel.querySelectorAll('[data-preset]').forEach(b=>b.onclick=()=>{const [w,d]=b.dataset.preset.split(',').map(Number); design.room.widthIn=w; design.room.depthIn=d; fit(); renderPanel(); pushHistory()});
+  panel.querySelectorAll('[data-openwall]').forEach(b=>b.onclick=()=>{ const sd=b.dataset.openwall; if(!Array.isArray(design.room.openWalls)) design.room.openWalls=[]; const i=design.room.openWalls.indexOf(sd); if(i>=0) design.room.openWalls.splice(i,1); else design.room.openWalls.push(sd); renderCanvas(); renderPanel(); pushHistory(); });
   panel.querySelectorAll('[data-opening]').forEach(b=>b.onclick=()=>selectOpening(b.dataset.opening));
   panel.querySelectorAll('[data-addop]').forEach(b=>b.onclick=()=>{const kind=b.dataset.addop; const wall=kind==='window'?'north':kind==='door'?'south':'east'; const widthIn=kind==='window'?48:36; const wallLen=(wall==='north'||wall==='south')?design.room.widthIn:design.room.depthIn; const op={id:uid(),wall,kind,widthIn,offsetIn:clamp(Math.round(wallLen/2-widthIn/2),0,Math.max(0,wallLen-widthIn))}; design.openings.push(op); selectOpening(op.id); renderCanvas(); pushHistory();});
 }
+const CODE_WATCHOUTS=[
+ '<strong>Countertop outlets — GFCI:</strong> receptacles serving kitchen counters need GFCI protection (NEC 210.8) — this one applies in every state.',
+ '<strong>Outlet spacing:</strong> no point along a counter should be more than 24″ from a receptacle — in practice, an outlet at least every 4 ft of counter run (NEC 210.52). Plan island outlets early: recent NEC cycles changed the island rules and states have adopted them unevenly.',
+ '<strong>Small-appliance circuits:</strong> countertop receptacles belong on two 20-amp small-appliance branch circuits (NEC 210.11).',
+ '<strong>Range hood:</strong> vent it outside where your code requires it — and above roughly 400 CFM, most codes (IRC M1503) also require makeup air. A builder conversation, not an afterthought.',
+ '<strong>Cooktop clearance:</strong> typically 30″ from the cooking surface to an unprotected cabinet above (IRC and range-manufacturer specs) — check your range manual.',
+ '<strong>Dishwasher discharge:</strong> some states (California is the classic example) require an air-gap fitting at the sink; others allow a high loop. An easy one to get flagged at inspection.',
+ '<strong>Permits &amp; structure:</strong> wall removal, new circuits, and moved plumbing are usually permitted work — and a removed wall that turns out to be load-bearing needs an engineered beam.',
+];
 function renderChecks(){
   const a=getAnalysis(); const nameOf=id=>design.items.find(i=>i.id===id)?.name||'Piece';
   const sevColor=s=>s==='narrow'?'var(--rust)':s==='tight'?'var(--oak)':'var(--good)'; const sevLabel=s=>s==='narrow'?'Too narrow':s==='tight'?'Tight':'Comfortable';
@@ -714,7 +756,12 @@ function renderChecks(){
   a.overlaps.forEach(o=>{h+=`<button class="check-card" style="border-color:var(--rust)" data-sel="${o.aId}"><strong style="color:var(--rust)">Overlap:</strong> ${esc(o.aName)} and ${esc(o.bName)} occupy the same floor space. Tap to select and move one.</button>`});
   a.outOfBounds.forEach(i=>{h+=`<button class="check-card" style="border-color:var(--rust)" data-sel="${i.id}"><strong style="color:var(--rust)">Outside the room:</strong> ${esc(i.name)} sticks past a wall. Tap to select it.</button>`});
   a.walkways.slice(0,8).forEach(w=>{h+=`<div class="check-card"><strong style="color:${sevColor(w.severity)}">${Math.round(w.gapIn)}″ — ${sevLabel(w.severity)}:</strong> walkway between ${esc(nameOf(w.aId))} and ${esc(nameOf(w.bId))}.${w.severity==='narrow'?' NKBA guidance is 36″ minimum for a one-cook walkway, 42″ for two cooks.':w.severity==='tight'?' Fine for one cook; 42″ is the two-cook comfort line.':''}</div>`});
-  h+=`</div></section></div>`;
+  h+=`</div></section>`;
+  if(a.standards&&a.standards.length){ h+=`<section><h2 class="font-display" style="font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--dim);margin:0">Builder standards</h2><p style="font-size:13px;color:var(--dim);margin:6px 0 0;line-height:1.5">Measured from your plan against NKBA kitchen-planning standards — the guidelines builders and designers work to.</p><div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">`;
+    a.standards.forEach(st=>{ h+=`<div class="check-card"><strong style="color:${st.ok?'var(--good)':'var(--oak)'}">${st.ok?'●':'▲'} ${esc(st.title)}:</strong> ${esc(st.detail)}</div>`; });
+    h+=`</div></section>`; }
+  if((design.meta&&design.meta.roomType)==='Kitchen'){ h+=`<section><h2 class="font-display" style="font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--dim);margin:0">Code watch-outs — vary by state &amp; city</h2><p style="font-size:13px;color:var(--dim);margin:6px 0 0;line-height:1.5">Not measured from your plan — these are the rules builders get inspected on. Most come from the national codes (NEC / IRC), but states and cities amend them, so treat each one as "may be out of code in your area — confirm locally."</p><div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">${CODE_WATCHOUTS.map(t=>`<div class="check-card">${t}</div>`).join('')}</div></section>`; }
+  h+=`</div>`;
   panel.innerHTML=h;
   panel.querySelectorAll('[data-sel]').forEach(b=>b.onclick=()=>selectItem(b.dataset.sel));
 }
@@ -803,10 +850,12 @@ function packetPlanSvg(ordered){
   s+='<text x="'+(W/2)+'" y="-10.8" font-size="5.6" text-anchor="middle" fill="#14202c" font-weight="600">'+esc(fmtIn(W))+'</text>';
   s+='<line x1="-8" y1="0" x2="-8" y2="'+D+'" stroke="#555" stroke-width="0.5"/><line x1="-10.5" y1="0" x2="-5.5" y2="0" stroke="#555" stroke-width="0.5"/><line x1="-10.5" y1="'+D+'" x2="-5.5" y2="'+D+'" stroke="#555" stroke-width="0.5"/>';
   s+='<text x="-12" y="'+(D/2)+'" font-size="5.6" text-anchor="middle" fill="#14202c" font-weight="600" transform="rotate(-90 -12 '+(D/2)+')">'+esc(fmtIn(D))+'</text>';
-  // room outline
-  s+='<rect x="0" y="0" width="'+W+'" height="'+D+'" fill="#ffffff" stroke="#14202c" stroke-width="1.8"/>';
-  // interior walls
-  for(const w of (design.walls||[])){ const r=wallRect(w); s+='<rect x="'+r.x+'" y="'+r.y+'" width="'+r.w+'" height="'+r.d+'" fill="#d9d2bf" stroke="#6b6250" stroke-width="0.6"/>'; }
+  // room outline (opened sides dashed)
+  s+='<rect x="0" y="0" width="'+W+'" height="'+D+'" fill="#ffffff"/>';
+  { const ow=(room.openWalls||[]); const pl=(x1,y1,x2,y2,sd)=>{ s+=ow.includes(sd)?'<line x1="'+x1+'" y1="'+y1+'" x2="'+x2+'" y2="'+y2+'" stroke="#999999" stroke-width="1.1" stroke-dasharray="4 3"/>':'<line x1="'+x1+'" y1="'+y1+'" x2="'+x2+'" y2="'+y2+'" stroke="#14202c" stroke-width="1.8"/>'; };
+    pl(0,0,W,0,'north'); pl(W,0,W,D,'east'); pl(0,D,W,D,'south'); pl(0,0,0,D,'west'); }
+  // interior walls + floor divider marks
+  for(const w of (design.walls||[])){ const r=wallRect(w); if(w.kind==='divider'){ s+='<line x1="'+(w.orient==='h'?r.x:r.x+r.w/2)+'" y1="'+(w.orient==='h'?r.y+r.d/2:r.y)+'" x2="'+(w.orient==='h'?r.x+r.w:r.x+r.w/2)+'" y2="'+(w.orient==='h'?r.y+r.d/2:r.y+r.d)+'" stroke="#8a7a4d" stroke-width="0.8" stroke-dasharray="3.2 2.2"/>'; } else { s+='<rect x="'+r.x+'" y="'+r.y+'" width="'+r.w+'" height="'+r.d+'" fill="#d9d2bf" stroke="#6b6250" stroke-width="0.6"/>'; } }
   // openings: white gap over the border + label just inside the room
   for(const op of (design.openings||[])){
     const horiz=(op.wall==='north'||op.wall==='south');
@@ -845,7 +894,10 @@ function openPacket(){
   h+='<h2 class="font-display">Room &amp; openings</h2><dl class="pkt-dl">';
   h+='<dt>Room size</dt><dd>'+esc(fmtIn(design.room.widthIn))+' × '+esc(fmtIn(design.room.depthIn))+' ('+Math.round(a.areaSqFt)+' sq ft)</dd>';
   if(design.room.wallHeightIn) h+='<dt>Ceiling height</dt><dd>'+esc(fmtIn(design.room.wallHeightIn))+'</dd>';
-  if(design.walls&&design.walls.length) h+='<dt>Interior walls</dt><dd>'+design.walls.map(w=>esc(fmtIn(w.lengthIn))+' '+(w.orient==='v'?'vertical':'horizontal')).join('; ')+'</dd>';
+  { const pw=(design.walls||[]).filter(w=>w.kind!=='divider'), pd=(design.walls||[]).filter(w=>w.kind==='divider');
+    if(pw.length) h+='<dt>Interior walls</dt><dd>'+pw.map(w=>esc(fmtIn(w.lengthIn))+' '+(w.orient==='v'?'vertical':'horizontal')).join('; ')+'</dd>';
+    if(pd.length) h+='<dt>Floor divider marks</dt><dd>'+pd.map(w=>esc(fmtIn(w.lengthIn))+' '+(w.orient==='v'?'vertical':'horizontal')).join('; ')+'</dd>'; }
+  if(design.room.openWalls&&design.room.openWalls.length) h+='<dt>Opened walls</dt><dd>'+design.room.openWalls.join(', ')+' — drawn dashed on the plan</dd>';
   h+='</dl>';
   if(design.openings&&design.openings.length){
     h+='<table class="pkt-table"><tr><th>Opening</th><th>Wall</th><th>Width</th><th>Position</th></tr>';
