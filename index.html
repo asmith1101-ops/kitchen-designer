@@ -66,6 +66,33 @@ label.field span, .label{font-size:11px;font-weight:700;letter-spacing:.06em;tex
 .check-card{border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:14px;text-align:left;width:100%;background:var(--surface)}
 #saveStatus{font-family:ui-monospace,monospace;font-size:12px;font-weight:600;background:var(--surface-alt);padding:6px 10px;border-radius:999px;white-space:nowrap;color:var(--dim)}
 @media(max-width:640px){ .pill{display:none} .share-strip{font-size:12px} #designName{font-size:15px} header{padding:8px 10px;gap:8px} nav.tabs button{padding:7px 9px;font-size:13px} .hint{display:none} }
+/* contractor packet */
+#packetOverlay{display:none;position:fixed;inset:0;z-index:60;background:#fff;color:#14202c;overflow-y:auto}
+#packetOverlay.open{display:block}
+.pkt-toolbar{position:sticky;top:0;background:#14202c;color:#fff;display:flex;gap:8px;align-items:center;padding:10px 16px;z-index:2}
+.pkt-wrap{max-width:820px;margin:0 auto;padding:26px 22px 48px;font-size:14px;line-height:1.45}
+.pkt-wrap h1{font-size:24px;margin:0}
+.pkt-wrap h2{font-size:16px;margin:26px 0 8px;border-bottom:2px solid #14202c;padding-bottom:4px}
+.pkt-meta{color:#4a5a6a;margin-top:4px}
+.pkt-plan{border:1px solid #999;padding:10px;margin-top:6px}
+.pkt-table{width:100%;border-collapse:collapse;margin-top:6px}
+.pkt-table th,.pkt-table td{border:1px solid #bbb;padding:5px 7px;text-align:left;vertical-align:top}
+.pkt-table th{background:#eef1f4;font-size:12px;text-transform:uppercase;letter-spacing:.04em}
+.pkt-table td.num,.pkt-table th.num{text-align:right;white-space:nowrap}
+.pkt-table tr.total td{font-weight:700;background:#f6f8fa}
+.pkt-url{font-family:ui-monospace,Menlo,monospace;font-size:10px;word-break:break-all;color:#33536e}
+.pkt-note{color:#4a5a6a;font-size:13px}
+.pkt-dl{display:grid;grid-template-columns:auto 1fr;gap:3px 14px;margin-top:6px}
+.pkt-dl dt{font-weight:600}
+.pkt-dl dd{margin:0}
+@media print{
+  #app,#importFile{display:none!important}
+  #packetOverlay{position:static!important;overflow:visible!important}
+  #packetOverlay:not(.open){display:none!important}
+  .pkt-toolbar{display:none!important}
+  .pkt-wrap{max-width:none;padding:0}
+}
+@page{margin:0.55in}
 </style>
 </head>
 <body>
@@ -112,6 +139,10 @@ label.field span, .label{font-size:11px;font-weight:700;letter-spacing:.06em;tex
   </div>
 </div>
 <input type="file" id="importFile" accept=".json,application/json" style="display:none">
+<div id="packetOverlay" role="dialog" aria-label="Contractor packet">
+  <div class="pkt-toolbar"><b class="font-display">Contractor packet</b><span style="opacity:.75;font-size:13px">Print it or save as PDF</span><span style="flex:1"></span><button class="btn btn-primary" id="pktPrintBtn">🖨 Print</button><button class="btn" id="pktCloseBtn">Close</button></div>
+  <div class="pkt-wrap" id="packetBody"></div>
+</div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <script>
@@ -699,11 +730,12 @@ function renderShare(){
   panel.innerHTML=`<div style="display:flex;flex-direction:column;gap:18px">
     <div><h2 class="font-display" style="font-size:18px;margin:0">Keep this design</h2><p style="color:var(--dim);line-height:1.55;margin:8px 0 0">This design saves itself on this device as you work, and — when you're signed in (Account tab) — to your own library too. Downloading a copy still works — handy for keeping a file or sending it to someone.</p></div>
     <div style="background:var(--surface-alt);border-radius:10px;padding:14px"><p class="mono" style="font-size:13px;color:var(--dim);margin:0">${design.items.length} pieces · ${fmtIn(design.room.widthIn)} × ${fmtIn(design.room.depthIn)} room · ${fmtMoney(a.budgetCents)} committed so far</p>
-    <div style="display:flex;flex-direction:column;gap:8px;margin-top:12px"><button class="btn btn-primary" id="dlBtn">⬇ Download design file (.json)</button><button class="btn" id="copySummaryBtn">Copy a text summary</button><button class="btn" id="importBtn">Open a saved design file…</button></div>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-top:12px"><button class="btn btn-primary" id="packetBtn">🖨 Contractor packet — print / PDF</button><button class="btn" id="dlBtn">⬇ Download design file (.json)</button><button class="btn" id="copySummaryBtn">Copy a text summary</button><button class="btn" id="importBtn">Open a saved design file…</button></div>
     <p id="shareMsg" style="font-size:13px;color:var(--good);margin:10px 0 0;min-height:18px"></p></div>
     <div><h3 class="font-display" style="margin:0;font-size:15px">Sharing your design</h3><ol style="color:var(--dim);line-height:1.6;padding-left:20px;margin:8px 0 0"><li>Tap <b style="color:var(--text)">Download design file</b> above.</li><li>Text or email that file to anyone — they can open it in this page via “Open a saved design file.”</li><li>A screenshot works too for a quick look — pinch to frame the plan, then use your phone’s screenshot.</li></ol></div>
     <div><h3 class="font-display" style="margin:0;font-size:15px">Start over</h3><p style="color:var(--dim);margin:6px 0 0;line-height:1.5">Want a blank room with the same size and doors/windows?</p><button class="btn" id="blankBtn" style="margin-top:10px;width:100%">${confirmClear?'Tap again to clear all pieces':'Clear all pieces, keep the room'}</button></div>
   </div>`;
+  document.getElementById('packetBtn').onclick=openPacket;
   const doDownload=()=>{const payload=serializeDesign(); const name=payload.name; const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}); const url=URL.createObjectURL(blob); const aEl=document.createElement('a'); aEl.href=url; aEl.download=name.replace(/[^a-z0-9-_]+/gi,'-').slice(0,60)+'.json'; document.body.appendChild(aEl); aEl.click(); aEl.remove(); setTimeout(()=>URL.revokeObjectURL(url),2000); const m=document.getElementById('shareMsg'); if(m) m.textContent='Downloaded — check your Files / Downloads.'};
   document.getElementById('dlBtn').onclick=doDownload;
   document.getElementById('copySummaryBtn').onclick=async()=>{const a2=getAnalysis(); const lines=[document.getElementById('designName').value, `Room: ${fmtIn(design.room.widthIn)} × ${fmtIn(design.room.depthIn)} (${Math.round(a2.areaSqFt)} sq ft)`, `Budget (products + custom items): ${fmtMoney(a2.budgetCents)}`, '', 'Pieces:']; design.items.forEach(i=>lines.push(`- ${i.name} — ${Math.round(itemRect(i).w)}×${Math.round(itemRect(i).d)}″ at ${Math.round(i.xIn)}″, ${Math.round(i.yIn)}″${i.priceCents!=null?' — '+fmtMoney(i.priceCents):''}${i.productUrl?' — '+i.productUrl:''}`)); computeBudget(design).customLines.forEach(r=>lines.push(`- ${r.name||'Custom item'} × ${r.qty} — ${fmtMoney(r.totalCents)}`)); if(a2.triangle) lines.push('',`Work triangle: ${a2.triangle.totalFt.toFixed(1)} ft total — ${a2.triangle.verdict}`); const txt=lines.join('\n'); try{await navigator.clipboard.writeText(txt); document.getElementById('shareMsg').textContent='Summary copied — paste it into a text or email.'}catch(e){document.getElementById('shareMsg').textContent='Copy blocked by the browser — use Download instead.'}};
@@ -712,6 +744,100 @@ function renderShare(){
   // expose for header button
   window.__doDownload=doDownload;
 }
+
+// ---------- Contractor packet (printable one-shot export) ----------
+function packetPlanSvg(ordered){
+  const room=design.room, W=room.widthIn, D=room.depthIn, M=18;
+  let s='<svg viewBox="'+(-M)+' '+(-M)+' '+(W+2*M)+' '+(D+2*M)+'" style="width:100%;height:auto;display:block" xmlns="http://www.w3.org/2000/svg">';
+  // overall dimension lines (top = width, left = depth)
+  s+='<line x1="0" y1="-8" x2="'+W+'" y2="-8" stroke="#555" stroke-width="0.5"/><line x1="0" y1="-10.5" x2="0" y2="-5.5" stroke="#555" stroke-width="0.5"/><line x1="'+W+'" y1="-10.5" x2="'+W+'" y2="-5.5" stroke="#555" stroke-width="0.5"/>';
+  s+='<text x="'+(W/2)+'" y="-10.8" font-size="5.6" text-anchor="middle" fill="#14202c" font-weight="600">'+esc(fmtIn(W))+'</text>';
+  s+='<line x1="-8" y1="0" x2="-8" y2="'+D+'" stroke="#555" stroke-width="0.5"/><line x1="-10.5" y1="0" x2="-5.5" y2="0" stroke="#555" stroke-width="0.5"/><line x1="-10.5" y1="'+D+'" x2="-5.5" y2="'+D+'" stroke="#555" stroke-width="0.5"/>';
+  s+='<text x="-12" y="'+(D/2)+'" font-size="5.6" text-anchor="middle" fill="#14202c" font-weight="600" transform="rotate(-90 -12 '+(D/2)+')">'+esc(fmtIn(D))+'</text>';
+  // room outline
+  s+='<rect x="0" y="0" width="'+W+'" height="'+D+'" fill="#ffffff" stroke="#14202c" stroke-width="1.8"/>';
+  // interior walls
+  for(const w of (design.walls||[])){ const r=wallRect(w); s+='<rect x="'+r.x+'" y="'+r.y+'" width="'+r.w+'" height="'+r.d+'" fill="#d9d2bf" stroke="#6b6250" stroke-width="0.6"/>'; }
+  // openings: white gap over the border + label just inside the room
+  for(const op of (design.openings||[])){
+    const horiz=(op.wall==='north'||op.wall==='south');
+    const x1=horiz?op.offsetIn:(op.wall==='west'?0:W), y1=horiz?(op.wall==='north'?0:D):op.offsetIn;
+    const x2=horiz?op.offsetIn+op.widthIn:x1, y2=horiz?y1:op.offsetIn+op.widthIn;
+    s+='<line x1="'+x1+'" y1="'+y1+'" x2="'+x2+'" y2="'+y2+'" stroke="#ffffff" stroke-width="3.4"/>';
+    s+='<line x1="'+x1+'" y1="'+y1+'" x2="'+x2+'" y2="'+y2+'" stroke="#14202c" stroke-width="0.7"/>';
+    const mx=(x1+x2)/2, my=(y1+y2)/2, inward=op.wall==='north'?6.5:op.wall==='south'?-3.5:0;
+    const lx=op.wall==='west'?mx+2.5:op.wall==='east'?mx-2.5:mx;
+    const anchor=op.wall==='west'?'start':op.wall==='east'?'end':'middle';
+    s+='<text x="'+lx+'" y="'+(my+inward)+'" font-size="4.1" text-anchor="'+anchor+'" fill="#33536e">'+esc(op.kind||'opening')+' '+esc(fmtIn(op.widthIn))+'</text>';
+  }
+  // items: floor layer first, upper layer dashed on top; numbered to match the product list
+  const num=new Map(ordered.map((it,i)=>[it.id,i+1]));
+  const draw=(it)=>{ const r=itemRect(it); const upper=it.layer!=='floor';
+    let g='<rect x="'+r.x+'" y="'+r.y+'" width="'+r.w+'" height="'+r.d+'" fill="'+(upper?'#ffffff':'#eae4d0')+'" stroke="#3a3a3a" stroke-width="0.7"'+(upper?' stroke-dasharray="2.4 1.6"':'')+'/>';
+    g+='<circle cx="'+(r.x+4.4)+'" cy="'+(r.y+4.4)+'" r="3.6" fill="#16324f"/><text x="'+(r.x+4.4)+'" y="'+(r.y+6)+'" font-size="4.4" text-anchor="middle" fill="#ffffff" font-weight="700">'+num.get(it.id)+'</text>';
+    if(r.w>=30&&r.d>=11){ const nm=shortName(it.name||'Piece'); const maxCh=Math.max(4,Math.floor(r.w/2.9)); const label=nm.length>maxCh?nm.slice(0,maxCh-1)+'…':nm;
+      g+='<text x="'+(r.x+r.w/2)+'" y="'+(r.y+r.d/2+1.6)+'" font-size="4.3" text-anchor="middle" fill="#222222">'+esc(label)+'</text>'; }
+    return g; };
+  ordered.filter(it=>it.layer==='floor').forEach(it=>{ s+=draw(it); });
+  ordered.filter(it=>it.layer!=='floor').forEach(it=>{ s+=draw(it); });
+  s+='</svg>';
+  return s;
+}
+function openPacket(){
+  const a=getAnalysis(), b=computeBudget(design);
+  const name=(document.getElementById('designName').value||'Untitled project').trim();
+  const rt=(design.meta&&design.meta.roomType)||'Kitchen';
+  const dateStr=new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
+  const ordered=[...design.items].sort((x,y)=>(x.yIn-y.yIn)||(x.xIn-y.xIn));
+  let h='<h1 class="font-display">'+esc(name)+'</h1>';
+  h+='<p class="pkt-meta">'+esc(rt)+' project · Contractor packet · '+esc(dateStr)+'</p>';
+  h+='<h2 class="font-display">Floor plan</h2><div class="pkt-plan">'+packetPlanSvg(ordered)+'</div>';
+  h+='<p class="pkt-note">Numbers on the plan match the product list below. Dashed outlines are wall-mounted / upper pieces shown in plan position.</p>';
+  h+='<h2 class="font-display">Room &amp; openings</h2><dl class="pkt-dl">';
+  h+='<dt>Room size</dt><dd>'+esc(fmtIn(design.room.widthIn))+' × '+esc(fmtIn(design.room.depthIn))+' ('+Math.round(a.areaSqFt)+' sq ft)</dd>';
+  if(design.room.wallHeightIn) h+='<dt>Ceiling height</dt><dd>'+esc(fmtIn(design.room.wallHeightIn))+'</dd>';
+  if(design.walls&&design.walls.length) h+='<dt>Interior walls</dt><dd>'+design.walls.map(w=>esc(fmtIn(w.lengthIn))+' '+(w.orient==='v'?'vertical':'horizontal')).join('; ')+'</dd>';
+  h+='</dl>';
+  if(design.openings&&design.openings.length){
+    h+='<table class="pkt-table"><tr><th>Opening</th><th>Wall</th><th>Width</th><th>Position</th></tr>';
+    for(const op of design.openings){
+      const horiz=(op.wall==='north'||op.wall==='south');
+      const corner=horiz?'west':'north';
+      h+='<tr><td>'+esc(op.kind||'opening')+'</td><td>'+esc(op.wall)+'</td><td>'+esc(fmtIn(op.widthIn))+'</td><td>starts '+esc(fmtIn(op.offsetIn))+' from the '+corner+' corner</td></tr>';
+    }
+    h+='</table>';
+  }
+  h+='<h2 class="font-display">Products &amp; pieces ('+ordered.length+')</h2>';
+  if(ordered.length){
+    h+='<table class="pkt-table"><tr><th>#</th><th>Piece</th><th>Size (W × D × H)</th><th class="num">Price</th><th>Product link</th></tr>';
+    ordered.forEach((it,i)=>{ const r=itemRect(it);
+      h+='<tr><td>'+(i+1)+'</td><td>'+esc(it.name||'Piece')+(it.notes?'<br><span class="pkt-note">'+esc(it.notes)+'</span>':'')+'</td><td>'+esc(fmtIn(r.w))+' × '+esc(fmtIn(r.d))+(it.hIn?' × '+esc(fmtIn(it.hIn)):'')+'</td><td class="num">'+(it.priceCents!=null?esc(fmtMoney(it.priceCents)):'—')+'</td><td>'+(it.productUrl?'<span class="pkt-url">'+esc(it.productUrl)+'</span>':'')+'</td></tr>';
+    });
+    h+='</table>';
+  } else { h+='<p class="pkt-note">No pieces placed yet.</p>'; }
+  h+='<h2 class="font-display">Budget summary</h2><table class="pkt-table">';
+  for(const g of b.productLines) h+='<tr><td>'+esc(g.name)+(g.qty>1?' × '+g.qty:'')+'</td><td class="num">'+esc(fmtMoney(g.totalCents))+'</td></tr>';
+  if(b.productsTotal) h+='<tr class="total"><td>Products subtotal</td><td class="num">'+esc(fmtMoney(b.productsTotal))+'</td></tr>';
+  for(const r of b.customLines) h+='<tr><td>'+esc(r.name||'Custom item')+(r.qty?(' × '+r.qty):'')+(r.note?' — '+esc(r.note):'')+'</td><td class="num">'+esc(fmtMoney(r.totalCents))+'</td></tr>';
+  if(b.customTotal) h+='<tr class="total"><td>Custom items subtotal</td><td class="num">'+esc(fmtMoney(b.customTotal))+'</td></tr>';
+  h+='<tr class="total"><td>Total committed</td><td class="num">'+esc(fmtMoney(b.total))+'</td></tr>';
+  if(b.target>0){ h+='<tr><td>Budget target</td><td class="num">'+esc(fmtMoney(b.target))+'</td></tr>';
+    h+='<tr class="total"><td>'+(b.remaining>=0?'Remaining':'Over target by')+'</td><td class="num">'+esc(fmtMoney(Math.abs(b.remaining)))+'</td></tr>'; }
+  h+='</table>';
+  if(b.unpricedCount) h+='<p class="pkt-note">'+b.unpricedCount+' piece'+(b.unpricedCount===1?' is':'s are')+' not yet priced and not included in the totals.</p>';
+  const notes=[];
+  if(a.triangle) notes.push('Work triangle: sink–stove '+a.triangle.legsFt.sinkCook.toFixed(1)+' ft · stove–fridge '+a.triangle.legsFt.cookFridge.toFixed(1)+' ft · fridge–sink '+a.triangle.legsFt.fridgeSink.toFixed(1)+' ft · total '+a.triangle.totalFt.toFixed(1)+' ft. '+a.triangle.verdict);
+  if(a.walkways&&a.walkways.length) notes.push('Narrowest walkway: '+fmtIn(a.walkways[0].gapIn)+(a.walkways[0].severity!=='ok'?' ('+a.walkways[0].severity+' — under the usual 42″ guideline)':'')+'.');
+  if(a.overlaps.length) notes.push(a.overlaps.length+' overlapping piece'+(a.overlaps.length===1?'':'s')+' flagged in the planner — worth a look before ordering.');
+  if(a.outOfBounds.length) notes.push(a.outOfBounds.length+' piece'+(a.outOfBounds.length===1?'':'s')+' extend beyond the room outline.');
+  if(notes.length){ h+='<h2 class="font-display">Layout notes</h2>'+notes.map(n=>'<p style="margin:4px 0">'+esc(n)+'</p>').join(''); }
+  h+='<p class="pkt-note" style="margin-top:30px;border-top:1px solid #ccc;padding-top:8px">Generated with Kitchen Designer · kitchendesignapp.netlify.app · Dimensions are plan measurements — verify on site before ordering or cutting.</p>';
+  document.getElementById('packetBody').innerHTML=h;
+  document.getElementById('packetOverlay').classList.add('open');
+  document.getElementById('packetOverlay').scrollTop=0;
+}
+document.getElementById('pktPrintBtn').onclick=()=>window.print();
+document.getElementById('pktCloseBtn').onclick=()=>document.getElementById('packetOverlay').classList.remove('open');
 // import
 // ---------- Design import (one path for file import + cloud load) ----------
 function applyImportedDesign(parsed){
