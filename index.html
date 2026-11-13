@@ -376,6 +376,16 @@ function renderCanvas(){
     if(drag.type==='resize'){const it=design.items.find(i=>i.id===drag.id); if(it){const r=itemRect(it); s+=labelTag(r.x,Math.max(-16,r.y-8.6),`${Math.round(r.w*2)/2}″ × ${Math.round(r.d*2)/2}″`)}}
     if(drag.type==='wallend'||drag.type==='wallseg'){const w=(design.walls||[]).find(x=>x.id===drag.id); if(w){const r=wallRect(w); s+=labelTag(r.x,Math.max(-16,r.y-8.6),'Wall '+fmtIn(w.lengthIn))}}
   }
+  // selected piece: dimension lines (width + depth) in amber, drawn clear of the room's own dims
+  if(selectedItemId&&!(typeof drag!=='undefined'&&drag)){
+    const it=design.items.find(i=>i.id===selectedItemId);
+    if(it){ const r=itemRect(it); const amber='#e8a33d', txt='fill="#f2c063" font-size="3.9" class="mono" style="paint-order:stroke" stroke="#0f2740" stroke-width="1.7"';
+      const wy=r.y>=10?r.y-5:r.y+r.d+6.5;
+      s+=`<g stroke="${amber}" stroke-width="0.45"><line x1="${r.x}" y1="${wy}" x2="${r.x+r.w}" y2="${wy}"/><line x1="${r.x}" y1="${wy-1.8}" x2="${r.x}" y2="${wy+1.8}"/><line x1="${r.x+r.w}" y1="${wy-1.8}" x2="${r.x+r.w}" y2="${wy+1.8}"/></g><text x="${r.x+r.w/2}" y="${wy-1.6}" text-anchor="middle" ${txt}>${fmtIn(r.w)}</text>`;
+      const dx=r.x>=10?r.x-5:r.x+r.w+6.5;
+      s+=`<g stroke="${amber}" stroke-width="0.45"><line x1="${dx}" y1="${r.y}" x2="${dx}" y2="${r.y+r.d}"/><line x1="${dx-1.8}" y1="${r.y}" x2="${dx+1.8}" y2="${r.y}"/><line x1="${dx-1.8}" y1="${r.y+r.d}" x2="${dx+1.8}" y2="${r.y+r.d}"/></g><text x="${dx-1.6}" y="${r.y+r.d/2}" text-anchor="middle" ${txt} transform="rotate(-90 ${dx-1.6} ${r.y+r.d/2})">${fmtIn(r.d)}</text>`;
+    }
+  }
   // openings
   for(const op of design.openings){
     const horiz=op.wall==='north'||op.wall==='south'; const wallY=op.wall==='north'?0:op.wall==='south'?D:null; const wallX=op.wall==='west'?0:op.wall==='east'?W:null; const selected=selectedOpeningId===op.id; const p=openingPoint(op,design.room);
@@ -383,7 +393,9 @@ function renderCanvas(){
     if(op.kind==='window'){ if(horiz) s+=`<g stroke="var(--bp-line)" stroke-width="0.5"><line x1="${op.offsetIn}" y1="${wallY-0.8}" x2="${op.offsetIn+op.widthIn}" y2="${wallY-0.8}"/><line x1="${op.offsetIn}" y1="${wallY+0.8}" x2="${op.offsetIn+op.widthIn}" y2="${wallY+0.8}"/></g>`; else s+=`<g stroke="var(--bp-line)" stroke-width="0.5"><line x1="${wallX-0.8}" y1="${op.offsetIn}" x2="${wallX-0.8}" y2="${op.offsetIn+op.widthIn}"/><line x1="${wallX+0.8}" y1="${op.offsetIn}" x2="${wallX+0.8}" y2="${op.offsetIn+op.widthIn}"/></g>`}
     if(op.kind==='cased'){ if(horiz) s+=`<g stroke="var(--bp-line)" stroke-width="0.6"><line x1="${op.offsetIn}" y1="${wallY-1.6}" x2="${op.offsetIn}" y2="${wallY+1.6}"/><line x1="${op.offsetIn+op.widthIn}" y1="${wallY-1.6}" x2="${op.offsetIn+op.widthIn}" y2="${wallY+1.6}"/></g>`; else s+=`<g stroke="var(--bp-line)" stroke-width="0.6"><line x1="${wallX-1.6}" y1="${op.offsetIn}" x2="${wallX+1.6}" y2="${op.offsetIn}"/><line x1="${wallX-1.6}" y1="${op.offsetIn+op.widthIn}" x2="${wallX+1.6}" y2="${op.offsetIn+op.widthIn}"/></g>`}
     if(op.kind==='door'){const inw={x:-p.nx,y:-p.ny}; const hinge=horiz?{x:op.offsetIn,y:wallY}:{x:wallX,y:op.offsetIn}; const leafEnd={x:hinge.x+inw.x*op.widthIn*0.94,y:hinge.y+inw.y*op.widthIn*0.94}; const closed=horiz?{x:hinge.x+op.widthIn,y:hinge.y}:{x:hinge.x,y:hinge.y+op.widthIn}; const sweep=(op.wall==='south'||op.wall==='east')?0:1; s+=`<g stroke="var(--bp-dim)" fill="none" stroke-width="0.45" opacity="0.85"><line x1="${hinge.x}" y1="${hinge.y}" x2="${leafEnd.x}" y2="${leafEnd.y}"/><path d="M ${closed.x} ${closed.y} A ${op.widthIn} ${op.widthIn} 0 0 ${sweep} ${leafEnd.x} ${leafEnd.y}" stroke-dasharray="2.5 2"/></g>`}
-    if(selected){ if(horiz) s+=`<rect x="${op.offsetIn-1}" y="${wallY-2.6}" width="${op.widthIn+2}" height="5.2" fill="none" stroke="#e8a33d" stroke-width="0.7" stroke-dasharray="3 2" pointer-events="none"/>`; else s+=`<rect x="${wallX-2.6}" y="${op.offsetIn-1}" width="5.2" height="${op.widthIn+2}" fill="none" stroke="#e8a33d" stroke-width="0.7" stroke-dasharray="3 2" pointer-events="none"/>`}
+    if(selected){ if(horiz) s+=`<rect x="${op.offsetIn-1}" y="${wallY-2.6}" width="${op.widthIn+2}" height="5.2" fill="none" stroke="#e8a33d" stroke-width="0.7" stroke-dasharray="3 2" pointer-events="none"/>`; else s+=`<rect x="${wallX-2.6}" y="${op.offsetIn-1}" width="5.2" height="${op.widthIn+2}" fill="none" stroke="#e8a33d" stroke-width="0.7" stroke-dasharray="3 2" pointer-events="none"/>`
+      const ocx=horiz?op.offsetIn+op.widthIn/2:wallX, ocy=horiz?wallY:op.offsetIn+op.widthIn/2, oLy=op.wall==='north'?ocy+9.5:op.wall==='south'?ocy-6.5:ocy, oLx=op.wall==='west'?ocx+6.5:op.wall==='east'?ocx-6.5:ocx, oAnch=op.wall==='west'?'start':op.wall==='east'?'end':'middle';
+      s+=`<text x="${oLx}" y="${oLy}" text-anchor="${oAnch}" font-size="3.9" fill="#f2c063" class="mono" style="paint-order:stroke" stroke="#0f2740" stroke-width="1.7" pointer-events="none">${op.kind} ${fmtIn(op.widthIn)}</text>`; }
     if(horiz) s+=`<rect x="${op.offsetIn}" y="${wallY-3.4}" width="${op.widthIn}" height="6.8" fill="transparent" data-type="opening" data-id="${op.id}" style="cursor:ew-resize"/>`; else s+=`<rect x="${wallX-3.4}" y="${op.offsetIn}" width="6.8" height="${op.widthIn}" fill="transparent" data-type="opening" data-id="${op.id}" style="cursor:ns-resize"/>`;
   }
   // walkways
