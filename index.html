@@ -87,7 +87,7 @@ label.field span, .label{font-size:11px;font-weight:700;letter-spacing:.06em;tex
     <button class="btn" id="npCancel">Cancel</button>
   </div>
   <div class="share-strip">
-    <span>👋 <b>Hi Christine!</b> Sketch freely — your work saves on this device as you go. Sign in under the <b>Account</b> tab to also save to the library you and Smitty share.</span>
+    <span>👋 <b>Welcome!</b> Sketch freely — your work saves on this device as you go. Sign in under the <b>Account</b> tab to also save your projects to a shared cloud library.</span>
     <button id="stripShareBtn">How to keep it ↓</button>
   </div>
 
@@ -701,7 +701,7 @@ function renderShare(){
     <div style="background:var(--surface-alt);border-radius:10px;padding:14px"><p class="mono" style="font-size:13px;color:var(--dim);margin:0">${design.items.length} pieces · ${fmtIn(design.room.widthIn)} × ${fmtIn(design.room.depthIn)} room · ${fmtMoney(a.budgetCents)} committed so far</p>
     <div style="display:flex;flex-direction:column;gap:8px;margin-top:12px"><button class="btn btn-primary" id="dlBtn">⬇ Download design file (.json)</button><button class="btn" id="copySummaryBtn">Copy a text summary</button><button class="btn" id="importBtn">Open a saved design file…</button></div>
     <p id="shareMsg" style="font-size:13px;color:var(--good);margin:10px 0 0;min-height:18px"></p></div>
-    <div><h3 class="font-display" style="margin:0;font-size:15px">Sending it to Smitty</h3><ol style="color:var(--dim);line-height:1.6;padding-left:20px;margin:8px 0 0"><li>Tap <b style="color:var(--text)">Download design file</b> above.</li><li>Text or email that file to Smitty — he can open it in his full Kitchen Designer and in this page via “Open a saved design file.”</li><li>A screenshot works too for a quick look — pinch to frame the plan, then use your phone’s screenshot.</li></ol></div>
+    <div><h3 class="font-display" style="margin:0;font-size:15px">Sharing your design</h3><ol style="color:var(--dim);line-height:1.6;padding-left:20px;margin:8px 0 0"><li>Tap <b style="color:var(--text)">Download design file</b> above.</li><li>Text or email that file to anyone — they can open it in this page via “Open a saved design file.”</li><li>A screenshot works too for a quick look — pinch to frame the plan, then use your phone’s screenshot.</li></ol></div>
     <div><h3 class="font-display" style="margin:0;font-size:15px">Start over</h3><p style="color:var(--dim);margin:6px 0 0;line-height:1.5">Want a blank room with the same size and doors/windows?</p><button class="btn" id="blankBtn" style="margin-top:10px;width:100%">${confirmClear?'Tap again to clear all pieces':'Clear all pieces, keep the room'}</button></div>
   </div>`;
   const doDownload=()=>{const payload=serializeDesign(); const name=payload.name; const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}); const url=URL.createObjectURL(blob); const aEl=document.createElement('a'); aEl.href=url; aEl.download=name.replace(/[^a-z0-9-_]+/gi,'-').slice(0,60)+'.json'; document.body.appendChild(aEl); aEl.click(); aEl.remove(); setTimeout(()=>URL.revokeObjectURL(url),2000); const m=document.getElementById('shareMsg'); if(m) m.textContent='Downloaded — check your Files / Downloads.'};
@@ -997,7 +997,7 @@ function renderCloudList(){ renderProjectList(); }
 // ---------- Account panel ----------
 function renderAccount(){
   let h='<div style="display:flex;flex-direction:column;gap:18px">';
-  h+='<div><h2 class="font-display" style="font-size:18px;margin:0">Account & cloud designs</h2><p style="color:var(--dim);line-height:1.55;margin:8px 0 0">Sign in to save designs to the shared library — Smitty and Christine both see every saved design, and changes save themselves. The planner also works without signing in: your sketch saves automatically on this device. Signing in is what adds the shared cloud library on top.</p></div>';
+  h+='<div><h2 class="font-display" style="font-size:18px;margin:0">Account & cloud designs</h2><p style="color:var(--dim);line-height:1.55;margin:8px 0 0">Sign in to save designs to your cloud library — everyone you share it with sees every saved design, and changes save themselves. The planner also works without signing in: your sketch saves automatically on this device. Signing in is what adds the shared cloud library on top.</p></div>';
   h+='<section style="border:1px solid var(--border);border-radius:10px;padding:14px">'
     +'<div style="display:flex;align-items:center;justify-content:space-between"><h3 class="font-display" style="margin:0;font-size:15px">Projects</h3><button class="btn" id="proj-refresh" style="padding:6px 10px;font-size:13px">Refresh</button></div>'
     +'<p style="font-size:13px;color:var(--dim);margin:6px 0 0;line-height:1.5">One project per room — kitchen, office, laundry… Each project has its own layout, pieces, and budget. '+(cloudUser?'These live in the shared cloud library.':'These live on this device; sign in below to share them in the cloud library.')+'</p>'
