@@ -122,12 +122,14 @@ label.field span, .label{font-size:11px;font-weight:700;letter-spacing:.06em;tex
     <section id="canvasSection" aria-label="Floor plan">
       <div id="svgWrap">
         <svg id="planSvg" role="application" aria-label="Kitchen floor plan editor"></svg>
-        <div class="hint">Drag pieces and walls to move · orange ends stretch · pinch or scroll to zoom · drag right / bottom edge to resize room</div>
+        <div class="hint">Drag pieces and walls to move · orange ends stretch · pinch or scroll to zoom · drag any room edge to resize · Delete key removes selection · ⌘Z undo</div>
         <div class="zoomctl">
           <span id="scaleLabel" class="mono" style="background:rgba(0,0,0,.35);color:#dcebf7;font-size:12px;padding:8px;border-radius:6px">2.0 px/in</span>
           <button id="zoomOut" aria-label="Zoom out">−</button>
           <button id="zoomIn" aria-label="Zoom in">+</button>
           <button id="zoomFit">Fit</button>
+          <button id="undoBtn" aria-label="Undo" disabled style="opacity:.45">↩ Undo</button>
+          <button id="redoBtn" aria-label="Redo" disabled style="opacity:.45">Redo ↪</button>
         </div>
       </div>
     </section>
@@ -343,19 +345,7 @@ function renderCanvas(){
   s+=`<text x="${W/2}" y="-9.5" text-anchor="middle" font-size="4.4" fill="var(--bp-dim)" class="mono">${fmtIn(W)}</text>`;
   s+=`<text x="-10" y="${D/2}" text-anchor="middle" font-size="4.4" fill="var(--bp-dim)" transform="rotate(-90 -10 ${D/2})">${fmtIn(D)}</text>`;
   s+=`<rect x="0" y="0" width="${W}" height="${D}" fill="rgba(220,235,247,0.045)" stroke="var(--bp-line)" stroke-width="1.5"/>`;
-  s+=`<rect x="${W-1.6}" y="0" width="3.2" height="${D}" fill="transparent" data-type="wall" data-wall="east" style="cursor:ew-resize"/><rect x="0" y="${D-1.6}" width="${W}" height="3.2" fill="transparent" data-type="wall" data-wall="south" style="cursor:ns-resize"/>`;
-  // interior wall segments
-  for(const w of (design.walls||[])){
-    const r=wallRect(w), selW=selectedWallId===w.id;
-    s+=`<g data-type="wallseg" data-id="${w.id}" style="cursor:move"><rect x="${w.orient==='h'?r.x-2:r.x-5}" y="${w.orient==='h'?r.y-5:r.y-2}" width="${w.orient==='h'?r.w+4:r.w+10}" height="${w.orient==='h'?r.d+10:r.d+4}" fill="transparent"/><rect x="${r.x}" y="${r.y}" width="${r.w}" height="${r.d}" fill="rgba(220,235,247,0.88)" stroke="${selW?'#e8a33d':'var(--bp-line)'}" stroke-width="${selW?1.1:0.7}"/><line x1="${r.x+r.w/2}" y1="${r.y}" x2="${r.x+r.w/2}" y2="${r.y+r.d}" stroke="var(--bp-dim)" stroke-width="0.3" opacity="0.5" style="display:${w.orient==='h'?'none':'block'}"/><line x1="${r.x}" y1="${r.y+r.d/2}" x2="${r.x+r.w}" y2="${r.y+r.d/2}" stroke="var(--bp-dim)" stroke-width="0.3" opacity="0.5" style="display:${w.orient==='v'?'none':'block'}"/></g>`;
-    if(selW){
-      const e0=w.orient==='h'?{x:r.x,y:r.y+r.d/2}:{x:r.x+r.w/2,y:r.y};
-      const e1=w.orient==='h'?{x:r.x+r.w,y:r.y+r.d/2}:{x:r.x+r.w/2,y:r.y+r.d};
-      s+=`<g fill="#e8a33d" stroke="#16324f" stroke-width="0.4"><circle cx="${e0.x}" cy="${e0.y}" r="7" fill="transparent" stroke="none" data-type="wallend" data-id="${w.id}" data-end="0" style="cursor:${w.orient==='h'?'ew-resize':'ns-resize'}"/><circle cx="${e1.x}" cy="${e1.y}" r="7" fill="transparent" stroke="none" data-type="wallend" data-id="${w.id}" data-end="1" style="cursor:${w.orient==='h'?'ew-resize':'ns-resize'}"/><circle cx="${e0.x}" cy="${e0.y}" r="3.4" data-type="wallend" data-id="${w.id}" data-end="0" style="cursor:${w.orient==='h'?'ew-resize':'ns-resize'}"/><circle cx="${e1.x}" cy="${e1.y}" r="3.4" data-type="wallend" data-id="${w.id}" data-end="1" style="cursor:${w.orient==='h'?'ew-resize':'ns-resize'}"/></g>`;
-      const chipX=w.orient==='h'?r.x+r.w/2:r.x+r.w/2+8.5, chipY=w.orient==='h'?r.y-8:r.y+r.d/2;
-      s+=`<g data-type="walldel" data-id="${w.id}" style="cursor:pointer"><circle cx="${chipX}" cy="${chipY}" r="3.6" fill="#b3402e" stroke="#ffffff" stroke-width="0.6"/><text x="${chipX}" y="${chipY+1.7}" text-anchor="middle" font-size="4.8" font-weight="700" fill="#ffffff" pointer-events="none">✕</text></g>`;
-    }
-  }
+  s+=`<rect x="${W-2.2}" y="0" width="4.4" height="${D}" fill="transparent" data-type="wall" data-wall="east" style="cursor:ew-resize"/><rect x="0" y="${D-2.2}" width="${W}" height="4.4" fill="transparent" data-type="wall" data-wall="south" style="cursor:ns-resize"/><rect x="-2.2" y="0" width="4.4" height="${D}" fill="transparent" data-type="wall" data-wall="west" style="cursor:ew-resize"/><rect x="0" y="-2.2" width="${W}" height="4.4" fill="transparent" data-type="wall" data-wall="north" style="cursor:ns-resize"/>`;
   // items
   const ordered=[...design.items.filter(i=>i.layer==='floor'),...design.items.filter(i=>i.layer==='upper')];
   for(const item of ordered){
@@ -398,6 +388,18 @@ function renderCanvas(){
       s+=`<text x="${oLx}" y="${oLy}" text-anchor="${oAnch}" font-size="3.9" fill="#f2c063" class="mono" style="paint-order:stroke" stroke="#0f2740" stroke-width="1.7" pointer-events="none">${op.kind} ${fmtIn(op.widthIn)}</text>`; }
     if(horiz) s+=`<rect x="${op.offsetIn}" y="${wallY-3.4}" width="${op.widthIn}" height="6.8" fill="transparent" data-type="opening" data-id="${op.id}" style="cursor:ew-resize"/>`; else s+=`<rect x="${wallX-3.4}" y="${op.offsetIn}" width="6.8" height="${op.widthIn}" fill="transparent" data-type="opening" data-id="${op.id}" style="cursor:ns-resize"/>`;
   }
+  // interior wall segments
+  for(const w of (design.walls||[])){
+    const r=wallRect(w), selW=selectedWallId===w.id;
+    s+=`<g data-type="wallseg" data-id="${w.id}" style="cursor:move"><rect x="${w.orient==='h'?r.x-2:r.x-8}" y="${w.orient==='h'?r.y-8:r.y-2}" width="${w.orient==='h'?r.w+4:r.w+16}" height="${w.orient==='h'?r.d+16:r.d+4}" fill="transparent"/><rect x="${r.x}" y="${r.y}" width="${r.w}" height="${r.d}" fill="rgba(220,235,247,0.88)" stroke="${selW?'#e8a33d':'var(--bp-line)'}" stroke-width="${selW?1.1:0.7}"/><line x1="${r.x+r.w/2}" y1="${r.y}" x2="${r.x+r.w/2}" y2="${r.y+r.d}" stroke="var(--bp-dim)" stroke-width="0.3" opacity="0.5" style="display:${w.orient==='h'?'none':'block'}"/><line x1="${r.x}" y1="${r.y+r.d/2}" x2="${r.x+r.w}" y2="${r.y+r.d/2}" stroke="var(--bp-dim)" stroke-width="0.3" opacity="0.5" style="display:${w.orient==='v'?'none':'block'}"/></g>`;
+    if(selW){
+      const e0=w.orient==='h'?{x:r.x,y:r.y+r.d/2}:{x:r.x+r.w/2,y:r.y};
+      const e1=w.orient==='h'?{x:r.x+r.w,y:r.y+r.d/2}:{x:r.x+r.w/2,y:r.y+r.d};
+      s+=`<g fill="#e8a33d" stroke="#16324f" stroke-width="0.4"><circle cx="${e0.x}" cy="${e0.y}" r="8.5" fill="transparent" stroke="none" data-type="wallend" data-id="${w.id}" data-end="0" style="cursor:${w.orient==='h'?'ew-resize':'ns-resize'}"/><circle cx="${e1.x}" cy="${e1.y}" r="8.5" fill="transparent" stroke="none" data-type="wallend" data-id="${w.id}" data-end="1" style="cursor:${w.orient==='h'?'ew-resize':'ns-resize'}"/><circle cx="${e0.x}" cy="${e0.y}" r="3.4" data-type="wallend" data-id="${w.id}" data-end="0" style="cursor:${w.orient==='h'?'ew-resize':'ns-resize'}"/><circle cx="${e1.x}" cy="${e1.y}" r="3.4" data-type="wallend" data-id="${w.id}" data-end="1" style="cursor:${w.orient==='h'?'ew-resize':'ns-resize'}"/></g>`;
+      const chipX=w.orient==='h'?r.x+r.w/2:r.x+r.w/2+8.5, chipY=w.orient==='h'?r.y-8:r.y+r.d/2;
+      s+=`<g data-type="walldel" data-id="${w.id}" style="cursor:pointer"><circle cx="${chipX}" cy="${chipY}" r="3.6" fill="#b3402e" stroke="#ffffff" stroke-width="0.6"/><text x="${chipX}" y="${chipY+1.7}" text-anchor="middle" font-size="4.8" font-weight="700" fill="#ffffff" pointer-events="none">✕</text></g>`;
+    }
+  }
   // walkways
   a.walkways.filter(w=>w.gapIn<48).forEach(wk=>{const color=wk.severity==='narrow'?'#e0705c':wk.severity==='tight'?'#e8a33d':'#7fc98f'; const mx=(wk.x1+wk.x2)/2,my=(wk.y1+wk.y2)/2; s+=`<g pointer-events="none"><line x1="${wk.x1}" y1="${wk.y1}" x2="${wk.x2}" y2="${wk.y2}" stroke="${color}" stroke-width="0.55" stroke-dasharray="2.5 1.8"/><rect x="${mx-5.4}" y="${my-2.6}" width="10.8" height="5.2" rx="1.4" fill="#0f2740" stroke="${color}" stroke-width="0.4"/><text x="${mx}" y="${my+1.5}" text-anchor="middle" font-size="3.4" fill="${color}">${Math.round(wk.gapIn)}″</text></g>`});
   s+=`</g>`;
@@ -419,11 +421,11 @@ svg.addEventListener('pointerdown',e=>{
   const type=t.dataset.type;
   if(type==='item'){const item=design.items.find(i=>i.id===t.dataset.id); if(!item)return; selectedItemId=item.id; selectedOpeningId=null; selectedWallId=null; currentTab='edit'; const inch=toInches(e.clientX,e.clientY); drag={type:'item',id:item.id,grabDX:inch.x-item.xIn,grabDY:inch.y-item.yIn}; renderTabs(); renderCanvas(); renderPanel(); e.stopPropagation(); return}
   if(type==='opening'){const op=design.openings.find(o=>o.id===t.dataset.id); if(!op)return; selectedOpeningId=op.id; selectedItemId=null; selectedWallId=null; currentTab='edit'; const inch=toInches(e.clientX,e.clientY); const along=(op.wall==='north'||op.wall==='south')?inch.x:inch.y; drag={type:'opening',id:op.id,grabOff:along-op.offsetIn}; renderTabs(); renderCanvas(); renderPanel(); e.stopPropagation(); return}
-  if(type==='walldel'){const w=(design.walls||[]).find(x=>x.id===t.dataset.id); if(w){design.walls=design.walls.filter(x=>x.id!==w.id); selectedWallId=null; renderCanvas(); updateHeader(); renderPanel();} e.stopPropagation(); return}
+  if(type==='walldel'){const w=(design.walls||[]).find(x=>x.id===t.dataset.id); if(w){design.walls=design.walls.filter(x=>x.id!==w.id); selectedWallId=null; renderCanvas(); updateHeader(); renderPanel(); pushHistory();} e.stopPropagation(); return}
   if(type==='wallseg'){const w=(design.walls||[]).find(x=>x.id===t.dataset.id); if(!w)return; selectedWallId=w.id; selectedItemId=null; selectedOpeningId=null; currentTab='edit'; const inch=toInches(e.clientX,e.clientY); drag={type:'wallseg',id:w.id,grabDX:inch.x-w.xIn,grabDY:inch.y-w.yIn}; renderTabs(); renderCanvas(); renderPanel(); e.stopPropagation(); return}
   if(type==='wallend'){drag={type:'wallend',id:t.dataset.id,end:+t.dataset.end}; e.stopPropagation(); return}
   if(type==='handle'){drag={type:'resize',id:t.dataset.id,handle:t.dataset.handle}; e.stopPropagation(); return}
-  if(type==='wall'){drag={type:'wall',wall:t.dataset.wall}; e.stopPropagation(); return}
+  if(type==='wall'){drag={type:'wall',wall:t.dataset.wall,startX:e.clientX,startY:e.clientY,origW:design.room.widthIn,origD:design.room.depthIn,origTx:view.tx,origTy:view.ty,snapItems:design.items.map(i=>[i.id,i.xIn,i.yIn]),snapWalls:(design.walls||[]).map(w=>[w.id,w.xIn,w.yIn]),snapOps:design.openings.map(o=>[o.id,o.offsetIn])}; e.stopPropagation(); return}
 });
 svg.addEventListener('pointermove',e=>{
   if(pointers.has(e.pointerId)) pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
@@ -438,15 +440,22 @@ svg.addEventListener('pointermove',e=>{
     if(w.orient==='h'){ if(drag.end===1){ w.lengthIn=clamp(snap05(inch.x-w.xIn),12,1200); } else { const endX=w.xIn+w.lengthIn; const nx=clamp(snap05(inch.x),0,Math.max(0,endX-12)); w.lengthIn=endX-nx; w.xIn=nx; } }
     else { if(drag.end===1){ w.lengthIn=clamp(snap05(inch.y-w.yIn),12,1200); } else { const endY=w.yIn+w.lengthIn; const ny=clamp(snap05(inch.y),0,Math.max(0,endY-12)); w.lengthIn=endY-ny; w.yIn=ny; } }
     renderCanvas(); syncWallPanel(w); return}
-  if(drag.type==='wall'){if(drag.wall==='east') design.room.widthIn=clamp(snap(inch.x),48,720); else design.room.depthIn=clamp(snap(inch.y),48,720); renderCanvas(); updateHeader(); syncEditInputs(); return}
+  if(drag.type==='wall'){
+    if(drag.wall==='east'){ design.room.widthIn=clamp(snap(inch.x),48,720); }
+    else if(drag.wall==='south'){ design.room.depthIn=clamp(snap(inch.y),48,720); }
+    else if(drag.wall==='west'){ const p=clamp(snap05((drag.startX-e.clientX)/view.scale),48-drag.origW,720-drag.origW); const nW=drag.origW+p; design.room.widthIn=nW; for(const pr of drag.snapItems){const it=design.items.find(i=>i.id===pr[0]); if(it) it.xIn=Math.max(0,pr[1]+p)} for(const pr of drag.snapWalls){const w2=(design.walls||[]).find(w=>w.id===pr[0]); if(w2) w2.xIn=Math.max(0,pr[1]+p)} for(const pr of drag.snapOps){const op=design.openings.find(o=>o.id===pr[0]); if(op&&(op.wall==='north'||op.wall==='south')) op.offsetIn=clamp(pr[1]+p,0,Math.max(0,nW-op.widthIn))} view.tx=drag.origTx-p*view.scale; }
+    else if(drag.wall==='north'){ const q=clamp(snap05((drag.startY-e.clientY)/view.scale),48-drag.origD,720-drag.origD); const nD=drag.origD+q; design.room.depthIn=nD; for(const pr of drag.snapItems){const it=design.items.find(i=>i.id===pr[0]); if(it) it.yIn=Math.max(0,pr[2]+q)} for(const pr of drag.snapWalls){const w2=(design.walls||[]).find(w=>w.id===pr[0]); if(w2) w2.yIn=Math.max(0,pr[2]+q)} for(const pr of drag.snapOps){const op=design.openings.find(o=>o.id===pr[0]); if(op&&(op.wall==='east'||op.wall==='west')) op.offsetIn=clamp(pr[1]+q,0,Math.max(0,nD-op.widthIn))} view.ty=drag.origTy-q*view.scale; }
+    renderCanvas(); updateHeader(); syncEditInputs(); return}
 });
-function endDrag(e){pointers.delete(e.pointerId); if(pointers.size===0) drag=null; else if(drag&&drag.type==='pinch') drag=null}
+function endDrag(e){pointers.delete(e.pointerId); if(pointers.size===0){ if(drag&&drag.type!=='pan'&&drag.type!=='pinch') pushHistory(); drag=null; } else if(drag&&drag.type==='pinch') drag=null}
 svg.addEventListener('pointerup',endDrag); svg.addEventListener('pointercancel',endDrag);
 svg.addEventListener('wheel',e=>{e.preventDefault(); userMoved=true; const r=svg.getBoundingClientRect(); const px=e.clientX-r.left, py=e.clientY-r.top; const factor=e.deltaY<0?1.12:0.89; const scale=clamp(view.scale*factor,0.4,14); view={scale,tx:px-((px-view.tx)/view.scale)*scale, ty:py-((py-view.ty)/view.scale)*scale}; renderCanvas(); updateHeader();},{passive:false});
-svg.addEventListener('dblclick',e=>{const t=e.target.closest('[data-type]'); if(t&&t.dataset.type==='wallseg'){const w=(design.walls||[]).find(x=>x.id===t.dataset.id); if(w){flipWall(w); renderCanvas(); if(currentTab==='edit') renderPanel();}}});
+svg.addEventListener('dblclick',e=>{const t=e.target.closest('[data-type]'); if(t&&t.dataset.type==='wallseg'){const w=(design.walls||[]).find(x=>x.id===t.dataset.id); if(w){flipWall(w); renderCanvas(); if(currentTab==='edit') renderPanel(); pushHistory();}}});
 document.getElementById('zoomIn').onclick=()=>zoomBy(1.25);
 document.getElementById('zoomOut').onclick=()=>zoomBy(0.8);
 document.getElementById('zoomFit').onclick=()=>fit();
+const undoBtnEl=document.getElementById('undoBtn'); if(undoBtnEl) undoBtnEl.onclick=()=>{ undo(); undoBtnEl.blur(); };
+const redoBtnEl=document.getElementById('redoBtn'); if(redoBtnEl) redoBtnEl.onclick=()=>{ redo(); redoBtnEl.blur(); };
 new ResizeObserver(()=>{const r=wrap.getBoundingClientRect(); const old=containerSize; containerSize={w:r.width,h:r.height}; if(!fitted&&r.width>10){fitted=true; fit()} else if(!userMoved && (Math.abs(old.w-r.width)>2||Math.abs(old.h-r.height)>2)){fit()} else renderCanvas()}).observe(wrap);
 
 function syncEditInputs(){
@@ -470,6 +479,29 @@ function syncWallPanel(w){
   const cap=document.getElementById('ed-wall-cap'); if(cap) cap.textContent='Runs '+(w.orient==='h'?'left → right':'top → bottom')+' · '+fmtIn(w.lengthIn)+' long';
 }
 
+// ---------- Undo / redo ----------
+let hist=[], hIdx=-1;
+function pushHistory(){ try{ const s=JSON.stringify(design); if(hIdx>=0&&hist[hIdx]===s){ updateUndoBtns(); return } hist=hist.slice(0,hIdx+1); hist.push(s); if(hist.length>60) hist.shift(); hIdx=hist.length-1; updateUndoBtns(); }catch(_){} }
+function restoreHist(){ const d=JSON.parse(hist[hIdx]); for(const k of Object.keys(design)) delete design[k]; Object.assign(design,d); selectedItemId=null; selectedOpeningId=null; selectedWallId=null; renderCanvas(); renderPanel(); updateHeader(); updateUndoBtns(); }
+function undo(){ if(hIdx>0){ hIdx--; restoreHist(); } }
+function redo(){ if(hIdx<hist.length-1){ hIdx++; restoreHist(); } }
+function updateUndoBtns(){ const u=document.getElementById('undoBtn'), r=document.getElementById('redoBtn'); if(u){ u.disabled=!(hIdx>0); u.style.opacity=u.disabled?0.45:1 } if(r){ r.disabled=!(hIdx<hist.length-1); r.style.opacity=r.disabled?0.45:1 } }
+function deleteSelection(){
+  if(selectedWallId){ design.walls=(design.walls||[]).filter(w=>w.id!==selectedWallId); selectedWallId=null; }
+  else if(selectedOpeningId){ design.openings=design.openings.filter(o=>o.id!==selectedOpeningId); selectedOpeningId=null; }
+  else if(selectedItemId){ design.items=design.items.filter(i=>i.id!==selectedItemId); selectedItemId=null; }
+  else return;
+  renderCanvas(); updateHeader(); renderPanel(); pushHistory();
+}
+document.addEventListener('keydown',e=>{
+  const t=e.target, tag=t&&t.tagName?t.tagName.toLowerCase():''; const typing=tag==='input'||tag==='textarea'||tag==='select'||(t&&t.isContentEditable);
+  const mod=e.metaKey||e.ctrlKey, k=(e.key||'').toLowerCase();
+  if(mod&&k==='z'&&!e.shiftKey){ if(typing) return; e.preventDefault(); undo(); return }
+  if((mod&&k==='z'&&e.shiftKey)||(e.ctrlKey&&k==='y')){ if(typing) return; e.preventDefault(); redo(); return }
+  if(typing) return;
+  if(e.key==='Delete'||e.key==='Backspace'){ e.preventDefault(); deleteSelection(); }
+});
+
 // ---------- Helpers for panels ----------
 function numField(label,bind,value,min,max,onchange){
   return `<label class="field"><span>${label}</span><input data-bind="${bind}" data-min="${min}" data-max="${max}" type="number" inputmode="decimal" value="${Math.round(value*10)/10}" onchange="window.__numChange(this, '${bind}')"></label>`;
@@ -486,7 +518,7 @@ window.__numChange=function(el,bind){
   if(bind==='room.h'){design.room.wallHeightIn=v}
   if(bind==='opening.offset'){const op=design.openings.find(o=>o.id===selectedOpeningId); if(op) op.offsetIn=v}
   if(bind==='opening.width'){const op=design.openings.find(o=>o.id===selectedOpeningId); if(op){op.widthIn=v; const len=(op.wall==='north'||op.wall==='south')?design.room.widthIn:design.room.depthIn; op.offsetIn=clamp(op.offsetIn,0,Math.max(0,len-v))}}
-  renderCanvas(); updateHeader();
+  renderCanvas(); updateHeader(); pushHistory();
 };
 function finishPicker(current){
   return `<fieldset style="border:none;padding:0;margin:0"><legend class="label">Finish</legend><div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px">${FINISHES.map(f=>`<button class="finish-dot ${current===f.hex?'sel':''}" style="background:${f.hex}" title="${f.name}" aria-label="Finish ${f.name}" data-finish="${f.hex}"></button>`).join('')}<input type="color" value="${current}" data-colorpick style="width:40px;height:32px;border:1px solid var(--border);border-radius:6px;background:transparent"></div></fieldset>`;
@@ -540,9 +572,9 @@ function renderAdd(){
   <button class="btn" id="clearAllBtn" style="width:100%;margin-top:8px">${confirmClear?'Tap again to clear everything':'Clear all pieces'}</button></section>`;
   panel.innerHTML=h;
   const sb=document.getElementById('searchBox'); sb.oninput=()=>{searchQuery=sb.value; const pos=sb.selectionStart; renderAdd(); const nb=document.getElementById('searchBox'); nb.focus(); nb.setSelectionRange(pos,pos)};
-  panel.querySelectorAll('[data-add]').forEach(b=>b.onclick=()=>{const e=CATALOG.find(c=>c.id===b.dataset.add); const spot=findSpot(design,e.wIn,e.dIn,e.layer); const it=itemFromCatalog(e,spot.x,spot.y); design.items.push(it); selectedItemId=it.id; selectedOpeningId=null; selectedWallId=null; currentTab='edit'; renderTabs(); renderCanvas(); updateHeader(); renderPanel();});
+  panel.querySelectorAll('[data-add]').forEach(b=>b.onclick=()=>{const e=CATALOG.find(c=>c.id===b.dataset.add); const spot=findSpot(design,e.wIn,e.dIn,e.layer); const it=itemFromCatalog(e,spot.x,spot.y); design.items.push(it); selectedItemId=it.id; selectedOpeningId=null; selectedWallId=null; currentTab='edit'; renderTabs(); renderCanvas(); updateHeader(); renderPanel(); pushHistory();});
   const scopeSel=document.getElementById('catScope'); if(scopeSel) scopeSel.onchange=()=>{catalogScope=scopeSel.value; renderPanel()};
-  const awb=document.getElementById('addWallBtn'); if(awb) awb.onclick=()=>{const w={id:uid(),xIn:clamp(Math.round(design.room.widthIn/2-24),0,Math.max(0,design.room.widthIn-48)),yIn:clamp(Math.round(design.room.depthIn/2),0,Math.max(0,design.room.depthIn-5)),lengthIn:48,orient:'h',thicknessIn:4.5}; if(!Array.isArray(design.walls)) design.walls=[]; design.walls.push(w); selectedWallId=w.id; selectedItemId=null; selectedOpeningId=null; currentTab='edit'; renderTabs(); renderCanvas(); updateHeader(); renderPanel();};
+  const awb=document.getElementById('addWallBtn'); if(awb) awb.onclick=()=>{const w={id:uid(),xIn:clamp(Math.round(design.room.widthIn/2-24),0,Math.max(0,design.room.widthIn-48)),yIn:clamp(Math.round(design.room.depthIn/2),0,Math.max(0,design.room.depthIn-5)),lengthIn:48,orient:'h',thicknessIn:4.5}; if(!Array.isArray(design.walls)) design.walls=[]; design.walls.push(w); selectedWallId=w.id; selectedItemId=null; selectedOpeningId=null; currentTab='edit'; renderTabs(); renderCanvas(); updateHeader(); renderPanel(); pushHistory();};
   const oc=document.getElementById('openCustom'); if(oc) oc.onclick=()=>{customOpen=true; renderPanel()};
   const cc=document.getElementById('cp-cancel'); if(cc) cc.onclick=()=>{customOpen=false; renderPanel()};
   // Mark dimension fields once the user types in them, so Fetch never overwrites their numbers.
@@ -610,15 +642,15 @@ function renderEdit(){
       ${tipHtml}
     </div>`;
     document.getElementById('ed-name').oninput=e=>{item.name=e.target.value; renderCanvas()};
-    document.getElementById('ed-rotate').onclick=()=>{const rot=(item.rotation+90)%360; item.rotation=rot; const sw=rot%180!==0; const ew=sw?item.dIn:item.wIn, ed=sw?item.wIn:item.dIn; item.xIn=clamp(item.xIn,0,Math.max(0,design.room.widthIn-ew)); item.yIn=clamp(item.yIn,0,Math.max(0,design.room.depthIn-ed)); renderCanvas(); renderPanel(); updateHeader()};
+    document.getElementById('ed-rotate').onclick=()=>{const rot=(item.rotation+90)%360; item.rotation=rot; const sw=rot%180!==0; const ew=sw?item.dIn:item.wIn, ed=sw?item.wIn:item.dIn; item.xIn=clamp(item.xIn,0,Math.max(0,design.room.widthIn-ew)); item.yIn=clamp(item.yIn,0,Math.max(0,design.room.depthIn-ed)); renderCanvas(); renderPanel(); updateHeader(); pushHistory()};
     document.getElementById('ed-layer').onchange=e=>{item.layer=e.target.value; renderCanvas(); renderPanel()};
     panel.querySelectorAll('#ed-finish [data-finish]').forEach(b=>b.onclick=()=>{item.color=b.dataset.finish; renderCanvas(); renderPanel()});
     const cp=panel.querySelector('#ed-finish [data-colorpick]'); if(cp) cp.oninput=()=>{item.color=cp.value; renderCanvas()};
     document.getElementById('ed-price').onchange=e=>{const v=parseFloat(e.target.value); item.priceCents=(e.target.value.trim()===''||!isFinite(v))?null:Math.max(0,Math.round(v*100)); updateHeader(); renderCanvas()};
     document.getElementById('ed-url').onchange=e=>{item.productUrl=e.target.value.trim()||null; renderPanel()};
     document.getElementById('ed-notes').onchange=e=>{item.notes=e.target.value||null};
-    document.getElementById('ed-dup').onclick=()=>{const copy={...item,id:uid()}; const r=itemRect(item); copy.xIn=clamp(item.xIn+12,0,Math.max(0,design.room.widthIn-r.w)); copy.yIn=clamp(item.yIn+12,0,Math.max(0,design.room.depthIn-r.d)); design.items.push(copy); selectedItemId=copy.id; renderCanvas(); updateHeader(); renderPanel()};
-    document.getElementById('ed-del').onclick=()=>{design.items=design.items.filter(i=>i.id!==item.id); selectedItemId=null; renderCanvas(); updateHeader(); renderPanel()};
+    document.getElementById('ed-dup').onclick=()=>{const copy={...item,id:uid()}; const r=itemRect(item); copy.xIn=clamp(item.xIn+12,0,Math.max(0,design.room.widthIn-r.w)); copy.yIn=clamp(item.yIn+12,0,Math.max(0,design.room.depthIn-r.d)); design.items.push(copy); selectedItemId=copy.id; renderCanvas(); updateHeader(); renderPanel(); pushHistory()};
+    document.getElementById('ed-del').onclick=()=>{design.items=design.items.filter(i=>i.id!==item.id); selectedItemId=null; renderCanvas(); updateHeader(); renderPanel(); pushHistory()};
     return;
   }
   if(wall){
@@ -628,10 +660,10 @@ function renderEdit(){
     <p class="mono" id="ed-wall-cap" style="font-size:13px;color:var(--dim);margin:0">Runs ${wall.orient==='h'?'left → right':'top → bottom'} · ${fmtIn(wall.lengthIn)} long</p>
     <div style="display:flex;gap:8px;border-top:1px solid var(--border);padding-top:12px"><button class="btn" id="ed-wall-flip" style="flex:1">Flip orientation</button><button class="btn ${confirmWallDelete===wall.id?'btn-rust':''}" id="ed-wall-del" style="flex:1">${confirmWallDelete===wall.id?'Tap again to delete':'Delete wall'}</button></div>
     </div>`;
-    document.getElementById('ed-wall-len').onchange=e=>{const v=parseFloat(e.target.value); if(isFinite(v)) wall.lengthIn=clamp(v,12,1200); renderCanvas(); renderPanel()};
-    document.getElementById('ed-wall-th').onchange=e=>{const v=parseFloat(e.target.value); if(isFinite(v)) wall.thicknessIn=clamp(v,2,12); renderCanvas(); renderPanel()};
-    document.getElementById('ed-wall-flip').onclick=()=>{flipWall(wall); renderCanvas(); renderPanel()};
-    document.getElementById('ed-wall-del').onclick=()=>{if(confirmWallDelete!==wall.id){confirmWallDelete=wall.id; renderPanel(); return} confirmWallDelete=null; design.walls=design.walls.filter(w=>w.id!==wall.id); selectedWallId=null; renderCanvas(); updateHeader(); renderPanel()};
+    document.getElementById('ed-wall-len').onchange=e=>{const v=parseFloat(e.target.value); if(isFinite(v)) wall.lengthIn=clamp(v,12,1200); renderCanvas(); renderPanel(); pushHistory()};
+    document.getElementById('ed-wall-th').onchange=e=>{const v=parseFloat(e.target.value); if(isFinite(v)) wall.thicknessIn=clamp(v,2,12); renderCanvas(); renderPanel(); pushHistory()};
+    document.getElementById('ed-wall-flip').onclick=()=>{flipWall(wall); renderCanvas(); renderPanel(); pushHistory()};
+    document.getElementById('ed-wall-del').onclick=()=>{if(confirmWallDelete!==wall.id){confirmWallDelete=wall.id; renderPanel(); return} confirmWallDelete=null; design.walls=design.walls.filter(w=>w.id!==wall.id); selectedWallId=null; renderCanvas(); updateHeader(); renderPanel(); pushHistory()};
     return;
   }
   if(opening){
@@ -644,7 +676,7 @@ function renderEdit(){
     <button class="btn btn-rust" id="op-del">Delete opening</button></div>`;
     document.getElementById('op-kind').onchange=e=>{opening.kind=e.target.value; renderCanvas(); renderPanel()};
     document.getElementById('op-wall').onchange=e=>{const w=e.target.value; const len=(w==='north'||w==='south')?design.room.widthIn:design.room.depthIn; opening.wall=w; opening.offsetIn=clamp(opening.offsetIn,0,Math.max(0,len-opening.widthIn)); renderCanvas(); renderPanel()};
-    document.getElementById('op-del').onclick=()=>{design.openings=design.openings.filter(o=>o.id!==opening.id); selectedOpeningId=null; renderCanvas(); renderPanel()};
+    document.getElementById('op-del').onclick=()=>{design.openings=design.openings.filter(o=>o.id!==opening.id); selectedOpeningId=null; renderCanvas(); renderPanel(); pushHistory()};
     return;
   }
   panel.innerHTML=`<div style="color:var(--dim)"><p class="font-display" style="font-size:18px;font-weight:800;color:var(--text);margin:0">Nothing selected</p><p style="margin-top:8px;line-height:1.5">Tap any cabinet, appliance, door, or window on the plan to edit it — move it, resize it, spin it, change its finish, or attach a real product with a price and link.</p><p class="mono" style="font-size:13px;margin-top:16px">Room ${fmtIn(design.room.widthIn)} × ${fmtIn(design.room.depthIn)} · ${design.items.length} pieces · ${(design.walls||[]).length} walls · ${design.openings.length} openings</p></div>`;
@@ -664,7 +696,7 @@ function renderRoom(){
   </div>`;
   panel.querySelectorAll('[data-preset]').forEach(b=>b.onclick=()=>{const [w,d]=b.dataset.preset.split(',').map(Number); design.room.widthIn=w; design.room.depthIn=d; fit(); renderPanel()});
   panel.querySelectorAll('[data-opening]').forEach(b=>b.onclick=()=>selectOpening(b.dataset.opening));
-  panel.querySelectorAll('[data-addop]').forEach(b=>b.onclick=()=>{const kind=b.dataset.addop; const wall=kind==='window'?'north':kind==='door'?'south':'east'; const widthIn=kind==='window'?48:36; const wallLen=(wall==='north'||wall==='south')?design.room.widthIn:design.room.depthIn; const op={id:uid(),wall,kind,widthIn,offsetIn:clamp(Math.round(wallLen/2-widthIn/2),0,Math.max(0,wallLen-widthIn))}; design.openings.push(op); selectOpening(op.id); renderCanvas();});
+  panel.querySelectorAll('[data-addop]').forEach(b=>b.onclick=()=>{const kind=b.dataset.addop; const wall=kind==='window'?'north':kind==='door'?'south':'east'; const widthIn=kind==='window'?48:36; const wallLen=(wall==='north'||wall==='south')?design.room.widthIn:design.room.depthIn; const op={id:uid(),wall,kind,widthIn,offsetIn:clamp(Math.round(wallLen/2-widthIn/2),0,Math.max(0,wallLen-widthIn))}; design.openings.push(op); selectOpening(op.id); renderCanvas(); pushHistory();});
 }
 function renderChecks(){
   const a=getAnalysis(); const nameOf=id=>design.items.find(i=>i.id===id)?.name||'Piece';
@@ -860,7 +892,7 @@ document.getElementById('pktCloseBtn').onclick=()=>document.getElementById('pack
 function applyImportedDesign(parsed){
   const data=parsed.data||parsed;
   if(!data.room||!Array.isArray(data.items)||!Array.isArray(data.openings)) throw new Error('bad');
-  design=data; ensureBudget(design); normalizeDesign(design); if(parsed.name) document.getElementById('designName').value=parsed.name; selectedItemId=null; selectedOpeningId=null; selectedWallId=null; fitted=false; fit(); renderCanvas(); updateHeader(); currentTab='checks'; renderTabs(); renderPanel();
+  design=data; ensureBudget(design); normalizeDesign(design); if(parsed.name) document.getElementById('designName').value=parsed.name; selectedItemId=null; selectedOpeningId=null; selectedWallId=null; fitted=false; fit(); renderCanvas(); updateHeader(); currentTab='checks'; renderTabs(); renderPanel(); hist=[]; hIdx=-1; pushHistory();
 }
 document.getElementById('importFile').addEventListener('change',e=>{
   const f=e.target.files[0]; if(!f) return; const reader=new FileReader(); reader.onload=()=>{try{applyImportedDesign(JSON.parse(reader.result))}catch(err){ currentTab='share'; renderTabs(); renderPanel(); const m=document.getElementById('shareMsg'); if(m){m.style.color='var(--rust)'; m.textContent='That file could not be opened as a kitchen design.'}}}; reader.readAsText(f); e.target.value='';
@@ -1140,6 +1172,7 @@ async function cloudNew(nameArg, typeArg){
   currentCloudId=null; currentCloudName=null; lastSavedSig=null; saveError=false;
   knownDesignRef=design; lastChangeSig=''; lastChangeAt=Date.now();
   fitted=false; fit(); renderCanvas(); updateHeader();
+  hist=[]; hIdx=-1; pushHistory();
   await cloudSaveNow();
   if(currentTab==='account') renderPanel();
 }
