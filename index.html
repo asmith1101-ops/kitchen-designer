@@ -433,11 +433,11 @@ svg.addEventListener('pointermove',e=>{
   if(drag.type==='item'){const item=design.items.find(i=>i.id===drag.id); if(!item)return; const r=itemRect(item); item.xIn=clamp(snap(inch.x-drag.grabDX),0,Math.max(0,W-r.w)); item.yIn=clamp(snap(inch.y-drag.grabDY),0,Math.max(0,D-r.d)); renderCanvas(); updateHeader(); syncEditInputs(); return}
   if(drag.type==='opening'){const op=design.openings.find(o=>o.id===drag.id); if(!op)return; const along=(op.wall==='north'||op.wall==='south')?inch.x:inch.y; const wallLen=(op.wall==='north'||op.wall==='south')?W:D; op.offsetIn=clamp(snap(along-drag.grabOff),0,Math.max(0,wallLen-op.widthIn)); renderCanvas(); syncEditInputs(); return}
   if(drag.type==='resize'){const item=design.items.find(i=>i.id===drag.id); if(!item||item.fixedSize)return; const r=itemRect(item); let ew=r.w,ed=r.d; if(drag.handle==='e'||drag.handle==='se') ew=clamp(snap05(inch.x-r.x),6,600); if(drag.handle==='s'||drag.handle==='se') ed=clamp(snap05(inch.y-r.y),6,600); const swapped=item.rotation%180!==0; item.wIn=swapped?ed:ew; item.dIn=swapped?ew:ed; renderCanvas(); updateHeader(); syncEditInputs(); return}
-  if(drag.type==='wallseg'){const w=(design.walls||[]).find(x=>x.id===drag.id); if(!w)return; const r=wallRect(w); w.xIn=clamp(snap(inch.x-drag.grabDX),0,Math.max(0,W-r.w)); w.yIn=clamp(snap(inch.y-drag.grabDY),0,Math.max(0,D-r.d)); renderCanvas(); return}
+  if(drag.type==='wallseg'){const w=(design.walls||[]).find(x=>x.id===drag.id); if(!w)return; const r=wallRect(w); w.xIn=clamp(snap(inch.x-drag.grabDX),0,Math.max(0,W-r.w)); w.yIn=clamp(snap(inch.y-drag.grabDY),0,Math.max(0,D-r.d)); renderCanvas(); syncEditInputs(); return}
   if(drag.type==='wallend'){const w=(design.walls||[]).find(x=>x.id===drag.id); if(!w)return;
     if(w.orient==='h'){ if(drag.end===1){ w.lengthIn=clamp(snap05(inch.x-w.xIn),12,1200); } else { const endX=w.xIn+w.lengthIn; const nx=clamp(snap05(inch.x),0,Math.max(0,endX-12)); w.lengthIn=endX-nx; w.xIn=nx; } }
     else { if(drag.end===1){ w.lengthIn=clamp(snap05(inch.y-w.yIn),12,1200); } else { const endY=w.yIn+w.lengthIn; const ny=clamp(snap05(inch.y),0,Math.max(0,endY-12)); w.lengthIn=endY-ny; w.yIn=ny; } }
-    renderCanvas(); return}
+    renderCanvas(); syncEditInputs(); return}
   if(drag.type==='wall'){if(drag.wall==='east') design.room.widthIn=clamp(snap(inch.x),48,720); else design.room.depthIn=clamp(snap(inch.y),48,720); renderCanvas(); updateHeader(); syncEditInputs(); return}
 });
 function endDrag(e){pointers.delete(e.pointerId); if(pointers.size===0) drag=null; else if(drag&&drag.type==='pinch') drag=null}
